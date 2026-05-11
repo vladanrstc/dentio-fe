@@ -1,27 +1,43 @@
 <section class="page-header">
   <div>
+    <span class="eyebrow">Pregled ordinacije</span>
     <h1>Dashboard</h1>
-    <p>Pregled najvaznijih podataka iz ordinacije.</p>
+    <p>Najvazniji operativni podaci iz Laravel API-ja.</p>
   </div>
 </section>
 
 @if (loading()) {
-  <div class="panel">Ucitavanje dashboard podataka...</div>
+  <section class="loading-grid" aria-label="Ucitavanje dashboard podataka">
+    @for (item of [1, 2, 3, 4, 5]; track item) {
+      <div class="skeleton-card"></div>
+    }
+  </section>
+  <section class="panel loading-panel">
+    <div class="spinner"></div>
+    <span>Ucitavanje narednih termina...</span>
+  </section>
 } @else if (error()) {
-  <div class="alert">{{ error() }}</div>
+  <section class="state-card error">
+    <strong>{{ error() }}</strong>
+    <p>Proverite da li Laravel API radi na podesavanju `http://127.0.0.1:8000/api/v1`.</p>
+  </section>
 } @else {
   <section class="cards">
     @for (card of cards(); track card.label) {
       <article class="stat-card">
         <span>{{ card.label }}</span>
         <strong>{{ card.value }}</strong>
+        <p>{{ card.hint }}</p>
       </article>
     }
   </section>
 
   <section class="panel">
     <div class="panel-title">
-      <h2>Predstojeci termini</h2>
+      <div>
+        <h2>Naredni termini</h2>
+        <p>Lista dolazi iz dashboard endpoint-a.</p>
+      </div>
     </div>
 
     @if (upcomingAppointments().length) {
@@ -39,7 +55,10 @@
         }
       </div>
     } @else {
-      <p class="empty">Nema predstojecih termina za prikaz.</p>
+      <div class="empty-state">
+        <strong>Nema narednih termina.</strong>
+        <p>Kada API vrati `upcoming_appointments`, termini ce biti prikazani ovde.</p>
+      </div>
     }
   </section>
 }

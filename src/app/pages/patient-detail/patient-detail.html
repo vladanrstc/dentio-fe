@@ -1,0 +1,179 @@
+<a class="back-link" routerLink="/patients">Nazad na pacijente</a>
+
+@if (loading()) {
+  <section class="state-card">
+    <div class="spinner"></div>
+    <div>
+      <strong>Ucitavanje pacijenta</strong>
+      <p>Podaci se preuzimaju iz Laravel API-ja.</p>
+    </div>
+  </section>
+} @else if (error()) {
+  <section class="state-card error">
+    <strong>{{ error() }}</strong>
+    <p>Proverite da li pacijent postoji i da li je API dostupan.</p>
+  </section>
+} @else if (patient(); as patient) {
+  <section class="detail-hero">
+    <div>
+      <span class="eyebrow">Karton pacijenta</span>
+      <h1>{{ patientName() }}</h1>
+      <p>{{ patient.email || 'Email nije unet' }} · {{ patient.phone || 'Telefon nije unet' }}</p>
+    </div>
+
+    <div class="hero-meta">
+      <span>Status</span>
+      <strong>{{ patient.manual_status || 'Nije postavljen' }}</strong>
+    </div>
+  </section>
+
+  <section class="summary-grid">
+    <article>
+      <span>Ukupna cena</span>
+      <strong>{{ formatMoney(patient.financials?.total_cost) }}</strong>
+    </article>
+    <article>
+      <span>Placeno</span>
+      <strong>{{ formatMoney(patient.financials?.paid_amount) }}</strong>
+    </article>
+    <article>
+      <span>Dugovanje</span>
+      <strong>{{ formatMoney(patient.financials?.outstanding_amount) }}</strong>
+    </article>
+    <article>
+      <span>Otvorene stavke</span>
+      <strong>{{ patient.open_tasks_count ?? 0 }}</strong>
+    </article>
+  </section>
+
+  <section class="detail-grid">
+    <article class="card">
+      <div class="card-header">
+        <h2>Osnovni podaci</h2>
+      </div>
+      <dl>
+        <div>
+          <dt>Ime i prezime</dt>
+          <dd>{{ fullName(patient) }}</dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd>{{ patient.email || '-' }}</dd>
+        </div>
+        <div>
+          <dt>Telefon</dt>
+          <dd>{{ patient.phone || '-' }}</dd>
+        </div>
+        <div>
+          <dt>Adresa</dt>
+          <dd>{{ patient.address || '-' }}</dd>
+        </div>
+        <div>
+          <dt>Primarni stomatolog</dt>
+          <dd>{{ dentistName(patient) }}</dd>
+        </div>
+      </dl>
+    </article>
+
+    <article class="card">
+      <div class="card-header">
+        <h2>Status pacijenta</h2>
+      </div>
+      <div class="status-block">
+        <span>{{ patient.manual_status || 'Nije postavljen' }}</span>
+        <p>{{ patient.manual_status_reason || 'Razlog statusa nije unet.' }}</p>
+      </div>
+      <div class="missing-endpoint">
+        Promena statusa nije dodata jer nema dokumentovanog API endpoint-a za status pacijenta.
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-header">
+        <h2>Aktivne stavke / sledeci koraci</h2>
+      </div>
+      @if (activeItems().length) {
+        <div class="list">
+          @for (item of activeItems(); track item.id) {
+            <div class="list-row">
+              <strong>{{ activeItemTitle(item) }}</strong>
+              <span>{{ item.status || 'Bez statusa' }}</span>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-state">
+          <strong>Nema aktivnih stavki za prikaz.</strong>
+          <p>API za detail trenutno ne vraca listu aktivnih stavki, samo broj otvorenih stavki.</p>
+        </div>
+      }
+    </article>
+
+    <article class="card">
+      <div class="card-header">
+        <h2>Termini pacijenta</h2>
+      </div>
+      @if (appointments().length) {
+        <div class="list">
+          @for (appointment of appointments(); track appointment.id) {
+            <div class="list-row">
+              <strong>{{ appointmentTitle(appointment) }}</strong>
+              <span>{{ appointmentTime(appointment) }}</span>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-state">
+          <strong>Nema termina za prikaz.</strong>
+          <p>API za detail trenutno ne vraca termine pacijenta.</p>
+        </div>
+      }
+    </article>
+
+    <article class="card">
+      <div class="card-header">
+        <h2>Intervencije pacijenta</h2>
+      </div>
+      @if (interventions().length) {
+        <div class="list">
+          @for (intervention of interventions(); track intervention.id) {
+            <div class="list-row">
+              <strong>{{ interventionTitle(intervention) }}</strong>
+              <span>{{ formatMoney(intervention.price) }}</span>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-state">
+          <strong>Nema intervencija za prikaz.</strong>
+          <p>API za detail trenutno ne vraca intervencije pacijenta.</p>
+        </div>
+      }
+    </article>
+
+    <article class="card">
+      <div class="card-header">
+        <h2>Finansije</h2>
+      </div>
+      <dl>
+        <div>
+          <dt>Ukupna cena</dt>
+          <dd>{{ formatMoney(patient.financials?.total_cost) }}</dd>
+        </div>
+        <div>
+          <dt>Placeno</dt>
+          <dd>{{ formatMoney(patient.financials?.paid_amount) }}</dd>
+        </div>
+        <div>
+          <dt>Dugovanje</dt>
+          <dd>{{ formatMoney(patient.financials?.outstanding_amount) }}</dd>
+        </div>
+      </dl>
+    </article>
+  </section>
+
+  <section class="card forms-note">
+    <h2>Forme na kartonu pacijenta</h2>
+    <p>Nisu dodate forme za novi termin, novu intervenciju, novu aktivnu stavku i promenu statusa, jer u dostupnom API spisku ne postoje endpoint-i za te akcije.</p>
+  </section>
+}

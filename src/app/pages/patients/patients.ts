@@ -1,13 +1,15 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { Api, CollectionResponse, Patient, PatientPayload, StaffMember } from '../../core/services/api';
 
 @Component({
   selector: 'app-patients',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './patients.html',
   styleUrl: './patients.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,6 +25,7 @@ export class Patients {
   protected readonly saving = signal(false);
   protected readonly error = signal('');
   protected readonly success = signal('');
+  protected readonly validationErrors = signal<string[]>([]);
   protected readonly editingPatient = signal<Patient | null>(null);
 
   protected readonly searchControl = this.formBuilder.nonNullable.control('');
@@ -50,6 +53,7 @@ export class Patients {
   protected submit(): void {
     this.success.set('');
     this.error.set('');
+    this.validationErrors.set([]);
 
     if (this.patientForm.invalid) {
       this.patientForm.markAllAsTouched();
@@ -71,8 +75,9 @@ export class Patients {
         this.cancelEdit();
         this.loadPatients(this.searchControl.value);
       },
-      error: () => {
+      error: (error: HttpErrorResponse) => {
         this.error.set('Cuvanje pacijenta nije uspelo. Proverite podatke i pokusajte ponovo.');
+        this.validationErrors.set(this.extractValidationErrors(error));
         this.saving.set(false);
       },
     });
@@ -82,6 +87,7 @@ export class Patients {
     this.editingPatient.set(patient);
     this.success.set('');
     this.error.set('');
+    this.validationErrors.set([]);
 
     this.patientForm.patchValue({
       first_name: patient.first_name ?? '',
@@ -96,6 +102,7 @@ export class Patients {
 
   protected cancelEdit(): void {
     this.editingPatient.set(null);
+    this.validationErrors.set([]);
     this.patientForm.reset({
       first_name: '',
       last_name: '',
@@ -120,6 +127,20 @@ export class Patients {
     return dentist?.name ?? '-';
   }
 
+  protected fullName(patient: Patient): string {
+    return patient.full_name || `${patient.first_name} ${patient.last_name}`.trim();
+  }
+
+  protected formatMoney(value: number | string | null | undefined): string {
+    const amount = Number(value ?? 0);
+
+    return new Intl.NumberFormat('sr-RS', {
+      style: 'currency',
+      currency: 'RSD',
+      maximumFractionDigits: 0,
+    }).format(Number.isFinite(amount) ? amount : 0);
+  }
+
   protected fieldInvalid(fieldName: keyof typeof this.patientForm.controls): boolean {
     const field = this.patientForm.controls[fieldName];
     return field.invalid && (field.dirty || field.touched);
@@ -128,6 +149,7 @@ export class Patients {
   private loadPatients(search = ''): void {
     this.loading.set(true);
     this.error.set('');
+    this.validationErrors.set([]);
 
     this.api.getPatients(search).subscribe({
       next: (response) => {
@@ -169,6 +191,16 @@ export class Patients {
   private emptyToNull(value: string | null | undefined): string | null {
     const trimmedValue = value?.trim() ?? '';
     return trimmedValue || null;
+  }
+
+  private extractValidationErrors(error: HttpErrorResponse): string[] {
+    const response = error.error as { message?: string; errors?: Record<string, string[]> } | null;
+
+    if (!response?.errors) {
+      return response?.message ? [response.message] : [];
+    }
+
+    return Object.values(response.errors).flat();
   }
 
   private resolveDentistId(patient: Patient): string {

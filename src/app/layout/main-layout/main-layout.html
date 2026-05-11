@@ -1,24 +1,31 @@
 <div class="app-shell">
   <aside class="sidebar">
     <div class="brand">
-      <strong>Dentio</strong>
-      <span>Dental admin</span>
+      <div class="brand-mark">D</div>
+      <div>
+        <strong>Dentio</strong>
+        <span>Dental SaaS</span>
+      </div>
     </div>
 
-    <nav>
-      <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
-      <a routerLink="/patients" routerLinkActive="active">Pacijenti</a>
+    <nav aria-label="Glavna navigacija">
+      <a routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        <span>Dashboard</span>
+      </a>
+      <a routerLink="/patients" routerLinkActive="active">
+        <span>Pacijenti</span>
+      </a>
     </nav>
   </aside>
 
   <section class="main-area">
     <header class="topbar">
       <div>
-        <strong>Admin panel</strong>
+        <strong>Dentio admin</strong>
         <span>Dentio ordinacija</span>
       </div>
 
-      <button type="button" (click)="logout()">Logout</button>
+      <button type="button" (click)="logout()">Odjavi se</button>
     </header>
 
     <main class="content">

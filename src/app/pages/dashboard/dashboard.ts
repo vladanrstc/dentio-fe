@@ -20,16 +20,30 @@ export class Dashboard {
     const data = this.dashboard();
 
     return [
-      { label: 'Ukupno pacijenata', value: this.readNumber(data, ['patients_total', 'total_patients', 'patients_count']) },
+      {
+        label: 'Ukupno pacijenata',
+        value: this.readNumber(data, ['patients_total', 'total_patients', 'patients_count']),
+        hint: 'Aktivni kartoni u ordinaciji',
+      },
       {
         label: 'Otvoreni zadaci',
         value: this.readNumber(data, ['patients_with_open_tasks', 'open_tasks_patients', 'open_tasks_count']),
+        hint: 'Pacijenti sa stavkama za obradu',
       },
-      { label: 'Termini danas', value: this.readNumber(data, ['appointments_today', 'today_appointments']) },
-      { label: 'Podsetnici', value: this.readNumber(data, ['reminders_due', 'reminders', 'reminders_count']) },
+      {
+        label: 'Termini danas',
+        value: this.readNumber(data, ['appointments_today', 'today_appointments']),
+        hint: 'Zakazani termini za danas',
+      },
+      {
+        label: 'Podsetnici',
+        value: this.readNumber(data, ['reminders_due', 'reminders', 'reminders_count']),
+        hint: 'Podsetnici koji cekaju akciju',
+      },
       {
         label: 'Dugovanja',
         value: this.formatMoney(this.readNumber(data, ['outstanding_amount', 'debt_total', 'debts', 'total_debt'])),
+        hint: 'Ukupno neizmireno',
       },
     ];
   });
@@ -56,7 +70,21 @@ export class Dashboard {
   }
 
   protected appointmentTime(appointment: Appointment): string {
-    return appointment.starts_at ?? appointment.appointment_at ?? appointment.date ?? appointment.time ?? '-';
+    return this.formatDate(appointment.starts_at ?? appointment.appointment_at ?? appointment.date ?? appointment.time);
+  }
+
+  protected formatDate(value: string | undefined): string {
+    if (!value) {
+      return '-';
+    }
+
+    return new Intl.DateTimeFormat('sr-RS', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: value.includes('T') ? '2-digit' : undefined,
+      minute: value.includes('T') ? '2-digit' : undefined,
+    }).format(new Date(value));
   }
 
   private loadDashboard(): void {

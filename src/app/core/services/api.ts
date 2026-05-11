@@ -15,6 +15,12 @@ export type DashboardData = {
   upcoming_appointments?: Appointment[];
 };
 
+export type Financials = {
+  total_cost?: number | string | null;
+  paid_amount?: number | string | null;
+  outstanding_amount?: number | string | null;
+};
+
 export type Appointment = {
   id: number;
   patient_name?: string;
@@ -30,6 +36,25 @@ export type Appointment = {
   note?: string;
 };
 
+export type Intervention = {
+  id: number;
+  title?: string;
+  name?: string;
+  tooth?: string | number | null;
+  price?: number | string | null;
+  status?: string | null;
+  created_at?: string;
+  date?: string;
+};
+
+export type ActiveItem = {
+  id: number;
+  title?: string;
+  description?: string | null;
+  due_at?: string | null;
+  status?: string | null;
+};
+
 export type StaffMember = {
   id: number;
   name: string;
@@ -38,12 +63,24 @@ export type StaffMember = {
 
 export type Patient = {
   id: number;
+  full_name?: string;
   first_name: string;
   last_name: string;
   address?: string | null;
   email?: string | null;
   phone?: string | null;
   date_of_birth?: string | null;
+  manual_status?: string | null;
+  manual_status_reason?: string | null;
+  open_tasks_count?: number;
+  financials?: Financials | null;
+  appointments?: Appointment[];
+  upcoming_appointments?: Appointment[];
+  interventions?: Intervention[];
+  active_items?: ActiveItem[];
+  next_steps?: ActiveItem[];
+  created_at?: string;
+  updated_at?: string;
   primary_dentist_id?: number | null;
   primary_dentist?: StaffMember | string | null;
 };
@@ -93,6 +130,18 @@ export class Api {
     }
 
     return this.http.get<CollectionResponse<Patient>>(`${this.baseUrl}/company/patients`, { params });
+  }
+
+  getPatient(patientId: number): Observable<Patient> {
+    return this.http.get<ItemResponse<Patient>>(`${this.baseUrl}/company/patients/${patientId}`).pipe(
+      map((response): Patient => {
+        if ('data' in response) {
+          return response.data;
+        }
+
+        return response;
+      }),
+    );
   }
 
   createPatient(payload: PatientPayload): Observable<ItemResponse<Patient>> {

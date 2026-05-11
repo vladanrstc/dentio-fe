@@ -1,13 +1,37 @@
 <section class="page-header">
   <div>
+    <span class="eyebrow">Kartoteka</span>
     <h1>Pacijenti</h1>
-    <p>Pretraga, unos i izmena pacijenata.</p>
+    <p>Pretraga, unos i izmena pacijenata preko Laravel API-ja.</p>
   </div>
 </section>
 
-<section class="panel patient-form">
+@if (success()) {
+  <div class="notice success">{{ success() }}</div>
+}
+
+@if (error()) {
+  <div class="notice error">
+    <strong>{{ error() }}</strong>
+    @if (validationErrors().length) {
+      <ul>
+        @for (message of validationErrors(); track message) {
+          <li>{{ message }}</li>
+        }
+      </ul>
+    }
+  </div>
+}
+
+<section class="panel patient-form" [class.editing]="editingPatient()">
   <div class="panel-title">
-    <h2>{{ editingPatient() ? 'Izmena pacijenta' : 'Novi pacijent' }}</h2>
+    <div>
+      <h2>{{ editingPatient() ? 'Izmena pacijenta' : 'Novi pacijent' }}</h2>
+      <p>{{ editingPatient() ? 'U toku je izmena postojeceg kartona.' : 'Unesite osnovne podatke za novi karton.' }}</p>
+    </div>
+    @if (editingPatient()) {
+      <span class="edit-badge">Edit mode</span>
+    }
   </div>
 
   <form [formGroup]="patientForm" (ngSubmit)="submit()">
@@ -63,40 +87,40 @@
     </div>
 
     <div class="form-actions">
-      <button type="submit" [disabled]="saving()">{{ saving() ? 'Cuvanje...' : editingPatient() ? 'Sacuvaj izmene' : 'Dodaj pacijenta' }}</button>
+      <button type="submit" [disabled]="saving()">
+        {{ saving() ? 'Cuvanje...' : editingPatient() ? 'Sacuvaj izmene' : 'Dodaj pacijenta' }}
+      </button>
       @if (editingPatient()) {
-        <button type="button" class="secondary" (click)="cancelEdit()">Odustani</button>
+        <button type="button" class="secondary" (click)="cancelEdit()" [disabled]="saving()">Odustani</button>
       }
     </div>
   </form>
 </section>
 
-@if (success()) {
-  <div class="notice success">{{ success() }}</div>
-}
-
-@if (error()) {
-  <div class="notice error">{{ error() }}</div>
-}
-
 <section class="panel">
   <div class="table-toolbar">
-    <h2>Lista pacijenata</h2>
-    <input type="search" [formControl]="searchControl" placeholder="Pretrazi pacijente..." />
+    <div>
+      <h2>Lista pacijenata</h2>
+      <p>Pretraga salje `search` query param na API.</p>
+    </div>
+    <input type="search" [formControl]="searchControl" placeholder="Pretrazi po imenu, telefonu ili emailu..." />
   </div>
 
   @if (loading()) {
-    <p class="empty">Ucitavanje pacijenata...</p>
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Ucitavanje pacijenata...</span>
+    </div>
   } @else if (patients().length) {
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>Ime i prezime</th>
-            <th>Email</th>
-            <th>Telefon</th>
+            <th>Pacijent</th>
+            <th>Kontakt</th>
             <th>Adresa</th>
-            <th>Primarni stomatolog</th>
+            <th>Stomatolog</th>
+            <th>Dugovanje</th>
             <th></th>
           </tr>
         </thead>
@@ -104,13 +128,18 @@
           @for (patient of patients(); track patient.id) {
             <tr>
               <td>
-                <strong>{{ patient.first_name }} {{ patient.last_name }}</strong>
+                <strong>{{ fullName(patient) }}</strong>
+                <span class="subtext">ID {{ patient.id }}</span>
               </td>
-              <td>{{ patient.email || '-' }}</td>
-              <td>{{ patient.phone || '-' }}</td>
+              <td>
+                <span>{{ patient.email || '-' }}</span>
+                <span class="subtext">{{ patient.phone || '-' }}</span>
+              </td>
               <td>{{ patient.address || '-' }}</td>
               <td>{{ dentistName(patient) }}</td>
+              <td>{{ formatMoney(patient.financials?.outstanding_amount) }}</td>
               <td class="actions">
+                <a [routerLink]="['/patients', patient.id]">Detalji</a>
                 <button type="button" (click)="startEdit(patient)">Izmeni</button>
               </td>
             </tr>
@@ -119,6 +148,9 @@
       </table>
     </div>
   } @else {
-    <p class="empty">Nema pacijenata za prikaz.</p>
+    <div class="empty-state">
+      <strong>Nema pacijenata za prikaz.</strong>
+      <p>Promenite pretragu ili dodajte novog pacijenta kroz formu iznad.</p>
+    </div>
   }
 </section>
