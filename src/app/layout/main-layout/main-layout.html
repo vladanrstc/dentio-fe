@@ -1,0 +1,28 @@
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <strong>Dentio</strong>
+      <span>Dental admin</span>
+    </div>
+
+    <nav>
+      <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+      <a routerLink="/patients" routerLinkActive="active">Pacijenti</a>
+    </nav>
+  </aside>
+
+  <section class="main-area">
+    <header class="topbar">
+      <div>
+        <strong>Admin panel</strong>
+        <span>Dentio ordinacija</span>
+      </div>
+
+      <button type="button" (click)="logout()">Logout</button>
+    </header>
+
+    <main class="content">
+      <router-outlet></router-outlet>
+    </main>
+  </section>
+</div>

@@ -1,0 +1,115 @@
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  background: #f4f7fb;
+  font-family: Arial, sans-serif;
+}
+
+.sidebar {
+  width: 240px;
+  background: #0f766e;
+  color: white;
+  padding: 24px;
+  flex: 0 0 240px;
+}
+
+.brand {
+  margin-bottom: 32px;
+}
+
+.brand strong {
+  display: block;
+  font-size: 24px;
+}
+
+.brand span {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+nav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+nav a {
+  color: white;
+  text-decoration: none;
+  padding: 11px 12px;
+  border-radius: 8px;
+}
+
+nav a.active,
+nav a:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.main-area {
+  flex: 1;
+  min-width: 0;
+}
+
+.topbar {
+  height: 72px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+}
+
+.topbar strong {
+  display: block;
+  color: #0f172a;
+}
+
+.topbar span {
+  display: block;
+  color: #64748b;
+  font-size: 14px;
+  margin-top: 3px;
+}
+
+.topbar button {
+  border: 1px solid #cbd5e1;
+  background: white;
+  color: #334155;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.topbar button:hover {
+  background: #f8fafc;
+}
+
+.content {
+  padding: 28px;
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: auto;
+    flex-basis: auto;
+  }
+
+  nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .topbar {
+    padding: 0 18px;
+  }
+
+  .content {
+    padding: 18px;
+  }
+}

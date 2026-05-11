@@ -1,0 +1,45 @@
+<section class="page-header">
+  <div>
+    <h1>Dashboard</h1>
+    <p>Pregled najvaznijih podataka iz ordinacije.</p>
+  </div>
+</section>
+
+@if (loading()) {
+  <div class="panel">Ucitavanje dashboard podataka...</div>
+} @else if (error()) {
+  <div class="alert">{{ error() }}</div>
+} @else {
+  <section class="cards">
+    @for (card of cards(); track card.label) {
+      <article class="stat-card">
+        <span>{{ card.label }}</span>
+        <strong>{{ card.value }}</strong>
+      </article>
+    }
+  </section>
+
+  <section class="panel">
+    <div class="panel-title">
+      <h2>Predstojeci termini</h2>
+    </div>
+
+    @if (upcomingAppointments().length) {
+      <div class="appointment-list">
+        @for (appointment of upcomingAppointments(); track appointment.id) {
+          <div class="appointment-row">
+            <div>
+              <strong>{{ appointmentPatient(appointment) }}</strong>
+              @if (appointment.note) {
+                <span>{{ appointment.note }}</span>
+              }
+            </div>
+            <time>{{ appointmentTime(appointment) }}</time>
+          </div>
+        }
+      </div>
+    } @else {
+      <p class="empty">Nema predstojecih termina za prikaz.</p>
+    }
+  </section>
+}

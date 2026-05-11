@@ -1,0 +1,124 @@
+<section class="page-header">
+  <div>
+    <h1>Pacijenti</h1>
+    <p>Pretraga, unos i izmena pacijenata.</p>
+  </div>
+</section>
+
+<section class="panel patient-form">
+  <div class="panel-title">
+    <h2>{{ editingPatient() ? 'Izmena pacijenta' : 'Novi pacijent' }}</h2>
+  </div>
+
+  <form [formGroup]="patientForm" (ngSubmit)="submit()">
+    <div class="form-grid">
+      <label>
+        Ime
+        <input type="text" formControlName="first_name" />
+        @if (fieldInvalid('first_name')) {
+          <span>Ime je obavezno.</span>
+        }
+      </label>
+
+      <label>
+        Prezime
+        <input type="text" formControlName="last_name" />
+        @if (fieldInvalid('last_name')) {
+          <span>Prezime je obavezno.</span>
+        }
+      </label>
+
+      <label>
+        Adresa
+        <input type="text" formControlName="address" />
+        @if (fieldInvalid('address')) {
+          <span>Adresa je obavezna.</span>
+        }
+      </label>
+
+      <label>
+        Email
+        <input type="email" formControlName="email" />
+      </label>
+
+      <label>
+        Telefon
+        <input type="text" formControlName="phone" />
+      </label>
+
+      <label>
+        Datum rodjenja
+        <input type="date" formControlName="date_of_birth" />
+      </label>
+
+      <label>
+        Primarni stomatolog
+        <select formControlName="primary_dentist_id">
+          <option value="">Nije izabran</option>
+          @for (dentist of staff(); track dentist.id) {
+            <option [value]="dentist.id">{{ dentist.name }}</option>
+          }
+        </select>
+      </label>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" [disabled]="saving()">{{ saving() ? 'Cuvanje...' : editingPatient() ? 'Sacuvaj izmene' : 'Dodaj pacijenta' }}</button>
+      @if (editingPatient()) {
+        <button type="button" class="secondary" (click)="cancelEdit()">Odustani</button>
+      }
+    </div>
+  </form>
+</section>
+
+@if (success()) {
+  <div class="notice success">{{ success() }}</div>
+}
+
+@if (error()) {
+  <div class="notice error">{{ error() }}</div>
+}
+
+<section class="panel">
+  <div class="table-toolbar">
+    <h2>Lista pacijenata</h2>
+    <input type="search" [formControl]="searchControl" placeholder="Pretrazi pacijente..." />
+  </div>
+
+  @if (loading()) {
+    <p class="empty">Ucitavanje pacijenata...</p>
+  } @else if (patients().length) {
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Ime i prezime</th>
+            <th>Email</th>
+            <th>Telefon</th>
+            <th>Adresa</th>
+            <th>Primarni stomatolog</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (patient of patients(); track patient.id) {
+            <tr>
+              <td>
+                <strong>{{ patient.first_name }} {{ patient.last_name }}</strong>
+              </td>
+              <td>{{ patient.email || '-' }}</td>
+              <td>{{ patient.phone || '-' }}</td>
+              <td>{{ patient.address || '-' }}</td>
+              <td>{{ dentistName(patient) }}</td>
+              <td class="actions">
+                <button type="button" (click)="startEdit(patient)">Izmeni</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <p class="empty">Nema pacijenata za prikaz.</p>
+  }
+</section>
