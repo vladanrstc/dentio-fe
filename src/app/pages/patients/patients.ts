@@ -5,13 +5,10 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 
-import {
-  Api,
-  CollectionResponse,
-  Patient,
-  PatientPayload,
-  StaffMember,
-} from '../../core/services/api';
+import { Patient, PatientPayload, StaffMember } from '../../core/models/api.models';
+import { PatientsApi } from '../../core/services/patients-api.service';
+import { formatMoney } from '../../core/utils/formatters';
+import { extractValidationErrors, unwrapCollection } from '../../core/utils/http-helpers';
 
 @Component({
   selector: 'app-patients',
@@ -21,7 +18,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Patients {
-  private readonly api = inject(Api);
+  private readonly patientsApi = inject(PatientsApi);
   private readonly formBuilder = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -33,6 +30,7 @@ export class Patients {
   protected readonly success = signal('');
   protected readonly validationErrors = signal<string[]>([]);
   protected readonly editingPatient = signal<Patient | null>(null);
+  protected readonly formatMoney = formatMoney;
 
   protected readonly searchControl = this.formBuilder.nonNullable.control('');
   protected readonly patientForm = this.formBuilder.group({
@@ -69,8 +67,8 @@ export class Patients {
     const payload = this.buildPayload();
     const editingPatient = this.editingPatient();
     const request = editingPatient
-      ? this.api.updatePatient(editingPatient.id, payload)
-      : this.api.createPatient(payload);
+      ? this.patientsApi.updatePatient(editingPatient.id, payload)
+      : this.patientsApi.createPatient(payload);
 
     this.saving.set(true);
 
@@ -83,7 +81,7 @@ export class Patients {
       },
       error: (error: HttpErrorResponse) => {
         this.error.set('Čuvanje pacijenta nije uspelo. Proverite podatke i pokušajte ponovo.');
-        this.validationErrors.set(this.extractValidationErrors(error));
+        this.validationErrors.set(extractValidationErrors(error));
         this.saving.set(false);
       },
     });
@@ -101,7 +99,7 @@ export class Patients {
     this.success.set('');
     this.error.set('');
 
-    this.api.deletePatient(patient.id).subscribe({
+    this.patientsApi.deletePatient(patient.id).subscribe({
       next: () => {
         this.success.set('Pacijent je uspešno obrisan.');
         this.patients.update((patients) => patients.filter((item) => item.id !== patient.id));
@@ -160,16 +158,6 @@ export class Patients {
     return patient.full_name || `${patient.first_name} ${patient.last_name}`.trim();
   }
 
-  protected formatMoney(value: number | string | null | undefined): string {
-    const amount = Number(value ?? 0);
-
-    return new Intl.NumberFormat('sr-RS', {
-      style: 'currency',
-      currency: 'RSD',
-      maximumFractionDigits: 0,
-    }).format(Number.isFinite(amount) ? amount : 0);
-  }
-
   protected fieldInvalid(fieldName: keyof typeof this.patientForm.controls): boolean {
     const field = this.patientForm.controls[fieldName];
     return field.invalid && (field.dirty || field.touched);
@@ -180,9 +168,9 @@ export class Patients {
     this.error.set('');
     this.validationErrors.set([]);
 
-    this.api.getPatients(search).subscribe({
+    this.patientsApi.getPatients(search).subscribe({
       next: (response) => {
-        this.patients.set(this.unwrapCollection(response));
+        this.patients.set(unwrapCollection(response));
         this.loading.set(false);
       },
       error: () => {
@@ -193,9 +181,9 @@ export class Patients {
   }
 
   private loadStaff(): void {
-    this.api.getStaff().subscribe({
+    this.patientsApi.getStaff().subscribe({
       next: (response) => {
-        this.staff.set(this.unwrapCollection(response));
+        this.staff.set(unwrapCollection(response));
       },
       error: () => {
         this.staff.set([]);
@@ -222,16 +210,6 @@ export class Patients {
     return trimmedValue || null;
   }
 
-  private extractValidationErrors(error: HttpErrorResponse): string[] {
-    const response = error.error as { message?: string; errors?: Record<string, string[]> } | null;
-
-    if (!response?.errors) {
-      return response?.message ? [response.message] : [];
-    }
-
-    return Object.values(response.errors).flat();
-  }
-
   private resolveDentistId(patient: Patient): string {
     if (patient.primary_dentist_id) {
       return String(patient.primary_dentist_id);
@@ -247,17 +225,5 @@ export class Patients {
     }
 
     return '';
-  }
-
-  private unwrapCollection<T>(response: CollectionResponse<T>): T[] {
-    if (Array.isArray(response)) {
-      return response;
-    }
-
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-
-    return response.data.data;
   }
 }

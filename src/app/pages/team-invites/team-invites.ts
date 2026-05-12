@@ -2,8 +2,11 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
+import { CompanyInvite } from '../../core/models/api.models';
 import { Auth } from '../../core/services/auth';
-import { Api, CollectionResponse, CompanyInvite } from '../../core/services/api';
+import { TeamApi } from '../../core/services/team-api.service';
+import { formatDate } from '../../core/utils/formatters';
+import { extractValidationErrors, unwrapCollection } from '../../core/utils/http-helpers';
 import { roleLabel, statusLabel } from '../../core/utils/role-label';
 
 @Component({
@@ -14,7 +17,7 @@ import { roleLabel, statusLabel } from '../../core/utils/role-label';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TeamInvites {
-  private readonly api = inject(Api);
+  private readonly teamApi = inject(TeamApi);
   private readonly auth = inject(Auth);
   private readonly formBuilder = inject(FormBuilder);
 
@@ -27,6 +30,7 @@ export class TeamInvites {
   protected readonly canInvite = this.auth.currentUser()?.role === 'company_admin';
   protected readonly formatRole = roleLabel;
   protected readonly formatStatus = statusLabel;
+  protected readonly formatDate = formatDate;
 
   protected readonly inviteForm = this.formBuilder.group({
     email: ['', [Validators.required, Validators.email]],
@@ -50,7 +54,7 @@ export class TeamInvites {
     const value = this.inviteForm.getRawValue();
     this.submitting.set(true);
 
-    this.api
+    this.teamApi
       .inviteTeamMember({
         email: value.email ?? '',
         role: value.role as 'dentist' | 'nurse',
@@ -64,7 +68,7 @@ export class TeamInvites {
         },
         error: (error: HttpErrorResponse) => {
           this.error.set('Pozivnica nije poslata.');
-          this.validationErrors.set(this.extractValidationErrors(error));
+          this.validationErrors.set(extractValidationErrors(error));
           this.submitting.set(false);
         },
       });
@@ -73,20 +77,6 @@ export class TeamInvites {
   protected fieldInvalid(fieldName: keyof typeof this.inviteForm.controls): boolean {
     const field = this.inviteForm.controls[fieldName];
     return field.invalid && (field.dirty || field.touched);
-  }
-
-  protected formatDate(value: string | null | undefined): string {
-    if (!value) {
-      return '-';
-    }
-
-    return new Intl.DateTimeFormat('sr-RS', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: value.includes('T') ? '2-digit' : undefined,
-      minute: value.includes('T') ? '2-digit' : undefined,
-    }).format(new Date(value));
   }
 
   protected canDeleteInvite(invite: CompanyInvite): boolean {
@@ -104,7 +94,7 @@ export class TeamInvites {
     this.error.set('');
     this.validationErrors.set([]);
 
-    this.api.deleteCompanyInvite(invite.id).subscribe({
+    this.teamApi.deleteCompanyInvite(invite.id).subscribe({
       next: () => {
         this.success.set('Pozivnica je obrisana.');
         this.invites.update((invites) => invites.filter((item) => item.id !== invite.id));
@@ -120,9 +110,9 @@ export class TeamInvites {
       this.loading.set(true);
     }
 
-    this.api.getCompanyInvites().subscribe({
+    this.teamApi.getCompanyInvites().subscribe({
       next: (response) => {
-        this.invites.set(this.unwrapCollection(response));
+        this.invites.set(unwrapCollection(response));
         this.loading.set(false);
       },
       error: () => {
@@ -130,27 +120,5 @@ export class TeamInvites {
         this.loading.set(false);
       },
     });
-  }
-
-  private extractValidationErrors(error: HttpErrorResponse): string[] {
-    const response = error.error as { message?: string; errors?: Record<string, string[]> } | null;
-
-    if (!response?.errors) {
-      return response?.message ? [response.message] : [];
-    }
-
-    return Object.values(response.errors).flat();
-  }
-
-  private unwrapCollection<T>(response: CollectionResponse<T>): T[] {
-    if (Array.isArray(response)) {
-      return response;
-    }
-
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-
-    return response.data.data;
   }
 }

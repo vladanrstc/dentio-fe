@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { AdminCompany, Api, CollectionResponse } from '../../core/services/api';
+import { AdminCompany } from '../../core/models/api.models';
+import { AdminApi } from '../../core/services/admin-api.service';
+import { unwrapCollection } from '../../core/utils/http-helpers';
 
 @Component({
   selector: 'app-admin-companies',
@@ -11,7 +13,7 @@ import { AdminCompany, Api, CollectionResponse } from '../../core/services/api';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminCompanies {
-  private readonly api = inject(Api);
+  private readonly adminApi = inject(AdminApi);
 
   protected readonly companies = signal<AdminCompany[]>([]);
   protected readonly loading = signal(true);
@@ -19,9 +21,9 @@ export class AdminCompanies {
   protected readonly success = signal('');
 
   constructor() {
-    this.api.getAdminCompanies().subscribe({
+    this.adminApi.getAdminCompanies().subscribe({
       next: (response) => {
-        this.companies.set(this.unwrapCollection(response));
+        this.companies.set(unwrapCollection(response));
         this.loading.set(false);
       },
       error: () => {
@@ -41,7 +43,7 @@ export class AdminCompanies {
     this.success.set('');
     this.error.set('');
 
-    this.api.deleteAdminCompany(company.id).subscribe({
+    this.adminApi.deleteAdminCompany(company.id).subscribe({
       next: () => {
         this.success.set('Kompanija je obrisana.');
         this.companies.update((companies) => companies.filter((item) => item.id !== company.id));
@@ -50,17 +52,5 @@ export class AdminCompanies {
         this.error.set('Brisanje kompanije nije uspelo.');
       },
     });
-  }
-
-  private unwrapCollection<T>(response: CollectionResponse<T>): T[] {
-    if (Array.isArray(response)) {
-      return response;
-    }
-
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-
-    return response.data.data;
   }
 }

@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 
-import { Api, Appointment, DashboardData } from '../../core/services/api';
+import { Appointment, DashboardData } from '../../core/models/api.models';
+import { PatientsApi } from '../../core/services/patients-api.service';
+import { formatDate, formatMoney } from '../../core/utils/formatters';
 
 @Component({
   selector: 'app-dashboard',
@@ -10,11 +12,12 @@ import { Api, Appointment, DashboardData } from '../../core/services/api';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Dashboard {
-  private readonly api = inject(Api);
+  private readonly patientsApi = inject(PatientsApi);
 
   protected readonly dashboard = signal<DashboardData | null>(null);
   protected readonly loading = signal(true);
   protected readonly error = signal('');
+  protected readonly formatDate = formatDate;
 
   protected readonly cards = computed(() => {
     const data = this.dashboard();
@@ -42,7 +45,7 @@ export class Dashboard {
       },
       {
         label: 'Dugovanja',
-        value: this.formatMoney(this.readNumber(data, ['outstanding_amount', 'debt_total', 'debts', 'total_debt'])),
+        value: formatMoney(this.readNumber(data, ['outstanding_amount', 'debt_total', 'debts', 'total_debt'])),
         hint: 'Ukupno neizmireno',
       },
     ];
@@ -73,25 +76,11 @@ export class Dashboard {
     return this.formatDate(appointment.starts_at ?? appointment.appointment_at ?? appointment.date ?? appointment.time);
   }
 
-  protected formatDate(value: string | undefined): string {
-    if (!value) {
-      return '-';
-    }
-
-    return new Intl.DateTimeFormat('sr-RS', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: value.includes('T') ? '2-digit' : undefined,
-      minute: value.includes('T') ? '2-digit' : undefined,
-    }).format(new Date(value));
-  }
-
   private loadDashboard(): void {
     this.loading.set(true);
     this.error.set('');
 
-    this.api.getDashboard().subscribe({
+    this.patientsApi.getDashboard().subscribe({
       next: (data) => {
         this.dashboard.set(data);
         this.loading.set(false);
@@ -120,13 +109,5 @@ export class Dashboard {
     }
 
     return 0;
-  }
-
-  private formatMoney(value: number): string {
-    return new Intl.NumberFormat('sr-RS', {
-      style: 'currency',
-      currency: 'RSD',
-      maximumFractionDigits: 0,
-    }).format(value);
   }
 }

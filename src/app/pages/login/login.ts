@@ -14,8 +14,8 @@ export class Login {
   private readonly auth = inject(Auth);
   private readonly router = inject(Router);
 
-  email = 'owner@test.rs';
-  password = 'Password123!';
+  email = '';
+  password = '';
   error = '';
 
   submit(): void {
@@ -26,7 +26,7 @@ export class Login {
         this.router.navigate([this.auth.homePathFor(response.user)]);
       },
       error: () => {
-        this.error = 'Pogresan email ili lozinka.';
+        this.error = 'Pogrešan email ili lozinka.';
       },
     });
   }

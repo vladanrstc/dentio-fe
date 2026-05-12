@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { AdminDashboardData, AdminInvite, Api } from '../../core/services/api';
+import { AdminDashboardData, AdminInvite } from '../../core/models/api.models';
+import { AdminApi } from '../../core/services/admin-api.service';
+import { formatDate } from '../../core/utils/formatters';
 import { statusLabel } from '../../core/utils/role-label';
 
 @Component({
@@ -12,13 +14,14 @@ import { statusLabel } from '../../core/utils/role-label';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminDashboard {
-  private readonly api = inject(Api);
+  private readonly adminApi = inject(AdminApi);
 
   protected readonly dashboard = signal<AdminDashboardData | null>(null);
   protected readonly loading = signal(true);
   protected readonly error = signal('');
   protected readonly success = signal('');
   protected readonly statusLabel = statusLabel;
+  protected readonly formatDate = formatDate;
 
   protected readonly cards = computed(() => {
     const data = this.dashboard();
@@ -47,7 +50,7 @@ export class AdminDashboard {
   });
 
   constructor() {
-    this.api.getAdminDashboard().subscribe({
+    this.adminApi.getAdminDashboard().subscribe({
       next: (dashboard) => {
         this.dashboard.set(dashboard);
         this.loading.set(false);
@@ -57,20 +60,6 @@ export class AdminDashboard {
         this.loading.set(false);
       },
     });
-  }
-
-  protected formatDate(value: string | null | undefined): string {
-    if (!value) {
-      return '-';
-    }
-
-    return new Intl.DateTimeFormat('sr-RS', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: value.includes('T') ? '2-digit' : undefined,
-      minute: value.includes('T') ? '2-digit' : undefined,
-    }).format(new Date(value));
   }
 
   protected canDeleteInvite(invite: AdminInvite): boolean {
@@ -99,7 +88,7 @@ export class AdminDashboard {
     this.success.set('');
     this.error.set('');
 
-    this.api.deleteAdminInvite(invite.id).subscribe({
+    this.adminApi.deleteAdminInvite(invite.id).subscribe({
       next: () => {
         this.success.set('Pozivnica je obrisana.');
         this.dashboard.update((dashboard) =>

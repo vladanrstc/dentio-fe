@@ -1,31 +1,17 @@
-import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, finalize, tap } from 'rxjs';
 
-import { Api } from './api';
-
-export type AuthUser = {
-  id: number;
-  company_id: number | null;
-  name: string;
-  email: string;
-  role: string;
-};
-
-export type LoginResponse = {
-  token: string;
-  user: AuthUser;
-};
+import { AuthUser, LoginResponse } from '../models/api.models';
+import { AuthApi } from './auth-api.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class Auth {
-  private readonly http = inject(HttpClient);
-  private readonly api = inject(Api);
+  private readonly api = inject(AuthApi);
 
   login(email: string, password: string): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.api.baseUrl}/login`, { email, password }).pipe(
+    return this.api.login(email, password).pipe(
       tap((response) => {
         localStorage.setItem('dentio_token', response.token);
         localStorage.setItem('dentio_user', JSON.stringify(response.user));
@@ -34,7 +20,7 @@ export class Auth {
   }
 
   logout(): Observable<unknown> {
-    return this.http.post(`${this.api.baseUrl}/logout`, {}).pipe(
+    return this.api.logout().pipe(
       finalize(() => {
         this.clearSession();
       }),
