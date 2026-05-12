@@ -103,8 +103,22 @@
       <h2>Lista pacijenata</h2>
       <p>Pretražite pacijente po imenu, telefonu ili email adresi.</p>
     </div>
-    <input type="search" [formControl]="searchControl" placeholder="Pretraži po imenu, telefonu ili emailu..." />
+    <div class="toolbar-actions">
+      <input type="search" [formControl]="searchControl" placeholder="Pretraži po imenu, telefonu ili emailu..." />
+      <select [formControl]="exportFormatControl" aria-label="Format exporta pacijenata">
+        <option value="csv">CSV</option>
+        <option value="xlsx">Excel</option>
+        <option value="pdf">PDF</option>
+      </select>
+      <button type="button" class="secondary" (click)="exportPatients()" [disabled]="exportingPatients()">
+        {{ exportingPatients() ? 'Export u toku...' : 'Export pacijenata' }}
+      </button>
+    </div>
   </div>
+
+  @if (exportError()) {
+    <div class="notice error">{{ exportError() }}</div>
+  }
 
   @if (loading()) {
     <div class="loading-row">

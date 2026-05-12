@@ -187,8 +187,20 @@ button.secondary:hover,
   padding-left: 20px;
 }
 
-.table-toolbar input {
-  width: min(420px, 100%);
+.toolbar-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.toolbar-actions input {
+  width: min(360px, 100%);
+}
+
+.toolbar-actions select {
+  min-width: 110px;
 }
 
 .table-wrap {
@@ -291,6 +303,14 @@ td strong {
   .panel-title {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .toolbar-actions {
+    align-items: stretch;
+  }
+
+  .toolbar-actions input {
+    width: 100%;
   }
 
   .form-actions,

@@ -5,10 +5,13 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 
-import { Patient, PatientPayload, StaffMember } from '../../core/models/api.models';
+import { Patient, PatientPayload, ReportFormat, StaffMember } from '../../core/models/api.models';
+import { FileDownloadService } from '../../core/services/file-download.service';
 import { PatientsApi } from '../../core/services/patients-api.service';
+import { ReportsApi } from '../../core/services/reports-api.service';
 import { formatMoney } from '../../core/utils/formatters';
 import { extractValidationErrors, unwrapCollection } from '../../core/utils/http-helpers';
+import { reportExportErrorMessage, reportFilename } from '../../core/utils/report-utils';
 
 @Component({
   selector: 'app-patients',
@@ -19,6 +22,8 @@ import { extractValidationErrors, unwrapCollection } from '../../core/utils/http
 })
 export class Patients {
   private readonly patientsApi = inject(PatientsApi);
+  private readonly reportsApi = inject(ReportsApi);
+  private readonly fileDownload = inject(FileDownloadService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -28,11 +33,14 @@ export class Patients {
   protected readonly saving = signal(false);
   protected readonly error = signal('');
   protected readonly success = signal('');
+  protected readonly exportError = signal('');
+  protected readonly exportingPatients = signal(false);
   protected readonly validationErrors = signal<string[]>([]);
   protected readonly editingPatient = signal<Patient | null>(null);
   protected readonly formatMoney = formatMoney;
 
   protected readonly searchControl = this.formBuilder.nonNullable.control('');
+  protected readonly exportFormatControl = this.formBuilder.nonNullable.control<ReportFormat>('csv');
   protected readonly patientForm = this.formBuilder.group({
     first_name: ['', [Validators.required]],
     last_name: ['', [Validators.required]],
@@ -108,6 +116,32 @@ export class Patients {
         this.error.set('Brisanje pacijenta nije uspelo.');
       },
     });
+  }
+
+  protected exportPatients(): void {
+    this.exportError.set('');
+    this.exportingPatients.set(true);
+
+    const format = this.exportFormatControl.value;
+    const search = this.searchControl.value.trim();
+
+    this.reportsApi
+      .exportPatients({
+        format,
+        search,
+      })
+      .subscribe({
+        next: (blob) => {
+          this.fileDownload.download(blob, reportFilename('pacijenti', format));
+          this.exportingPatients.set(false);
+        },
+        error: () => {
+          this.exportError.set(
+            reportExportErrorMessage(format, 'Export pacijenata trenutno nije uspeo. Pokušajte ponovo.'),
+          );
+          this.exportingPatients.set(false);
+        },
+      });
   }
 
   protected startEdit(patient: Patient): void {

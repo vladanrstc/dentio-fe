@@ -276,3 +276,24 @@ export type CollectionResponse<T> = T[] | { data: T[] } | { data: { data: T[] } 
 export type ItemResponse<T> = T | { data: T };
 export type DashboardResponse = DashboardData | { data: DashboardData };
 export type AdminDashboardResponse = AdminDashboardData | { data: AdminDashboardData };
+
+export type ReportFormat = 'csv' | 'xlsx' | 'pdf';
+
+export type ReportParams = Record<string, string | number | boolean | null | undefined>;
+
+export type ReportFrequency = 'off' | 'daily' | 'weekly' | 'monthly';
+
+export type ReportSettingsItem = {
+  report: 'patients' | 'appointments' | 'interventions_financial' | 'companies';
+  frequency: ReportFrequency;
+  format: ReportFormat;
+};
+
+export type ReportSubscription = ReportSettingsItem & {
+  report_key?: ReportSettingsItem['report'];
+};
+
+export type ReportSubscriptionPayload = {
+  frequency: ReportFrequency;
+  format: ReportFormat;
+};

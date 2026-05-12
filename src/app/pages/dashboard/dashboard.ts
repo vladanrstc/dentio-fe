@@ -1,23 +1,43 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 
-import { Appointment, DashboardData } from '../../core/models/api.models';
+import { Appointment, DashboardData, ReportFormat, StaffMember } from '../../core/models/api.models';
+import { FileDownloadService } from '../../core/services/file-download.service';
 import { PatientsApi } from '../../core/services/patients-api.service';
+import { ReportsApi } from '../../core/services/reports-api.service';
 import { formatDate, formatMoney } from '../../core/utils/formatters';
+import { unwrapCollection } from '../../core/utils/http-helpers';
+import { reportExportErrorMessage, reportFilename } from '../../core/utils/report-utils';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [],
+  imports: [ReactiveFormsModule],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Dashboard {
   private readonly patientsApi = inject(PatientsApi);
+  private readonly reportsApi = inject(ReportsApi);
+  private readonly fileDownload = inject(FileDownloadService);
+  private readonly formBuilder = inject(FormBuilder);
 
   protected readonly dashboard = signal<DashboardData | null>(null);
+  protected readonly staff = signal<StaffMember[]>([]);
   protected readonly loading = signal(true);
   protected readonly error = signal('');
+  protected readonly reportError = signal('');
+  protected readonly exportingAppointments = signal(false);
+  protected readonly exportingInterventions = signal(false);
   protected readonly formatDate = formatDate;
+  protected readonly reportForm = this.formBuilder.nonNullable.group({
+    date_from: [''],
+    date_to: [''],
+    user_id: [''],
+    type: [''],
+    status: [''],
+    format: ['csv' as ReportFormat],
+  });
 
   protected readonly cards = computed(() => {
     const data = this.dashboard();
@@ -57,6 +77,7 @@ export class Dashboard {
 
   constructor() {
     this.loadDashboard();
+    this.loadStaff();
   }
 
   protected appointmentPatient(appointment: Appointment): string {
@@ -76,6 +97,65 @@ export class Dashboard {
     return this.formatDate(appointment.starts_at ?? appointment.appointment_at ?? appointment.date ?? appointment.time);
   }
 
+  protected exportAppointments(): void {
+    this.reportError.set('');
+    this.exportingAppointments.set(true);
+
+    const value = this.reportForm.getRawValue();
+
+    this.reportsApi
+      .exportAppointments({
+        format: value.format,
+        date_from: value.date_from,
+        date_to: value.date_to,
+        user_id: value.user_id,
+        type: value.type,
+      })
+      .subscribe({
+        next: (blob) => {
+          this.fileDownload.download(blob, reportFilename('termini', value.format));
+          this.exportingAppointments.set(false);
+        },
+        error: () => {
+          this.reportError.set(
+            reportExportErrorMessage(value.format, 'Export termina trenutno nije uspeo. Pokušajte ponovo.'),
+          );
+          this.exportingAppointments.set(false);
+        },
+      });
+  }
+
+  protected exportInterventionsFinancial(): void {
+    this.reportError.set('');
+    this.exportingInterventions.set(true);
+
+    const value = this.reportForm.getRawValue();
+
+    this.reportsApi
+      .exportInterventionsFinancial({
+        format: value.format,
+        date_from: value.date_from,
+        date_to: value.date_to,
+        user_id: value.user_id,
+        status: value.status,
+      })
+      .subscribe({
+        next: (blob) => {
+          this.fileDownload.download(blob, reportFilename('intervencije-finansije', value.format));
+          this.exportingInterventions.set(false);
+        },
+        error: () => {
+          this.reportError.set(
+            reportExportErrorMessage(
+              value.format,
+              'Export intervencija i finansija trenutno nije uspeo. Pokušajte ponovo.',
+            ),
+          );
+          this.exportingInterventions.set(false);
+        },
+      });
+  }
+
   private loadDashboard(): void {
     this.loading.set(true);
     this.error.set('');
@@ -88,6 +168,17 @@ export class Dashboard {
       error: () => {
         this.error.set('Podaci za pregled trenutno nisu dostupni.');
         this.loading.set(false);
+      },
+    });
+  }
+
+  private loadStaff(): void {
+    this.patientsApi.getStaff().subscribe({
+      next: (response) => {
+        this.staff.set(unwrapCollection(response));
+      },
+      error: () => {
+        this.staff.set([]);
       },
     });
   }
