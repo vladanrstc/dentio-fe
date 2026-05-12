@@ -1,11 +1,17 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 
-import { Api, CollectionResponse, Patient, PatientPayload, StaffMember } from '../../core/services/api';
+import {
+  Api,
+  CollectionResponse,
+  Patient,
+  PatientPayload,
+  StaffMember,
+} from '../../core/services/api';
 
 @Component({
   selector: 'app-patients',
@@ -76,9 +82,32 @@ export class Patients {
         this.loadPatients(this.searchControl.value);
       },
       error: (error: HttpErrorResponse) => {
-        this.error.set('Cuvanje pacijenta nije uspelo. Proverite podatke i pokusajte ponovo.');
+        this.error.set('Čuvanje pacijenta nije uspelo. Proverite podatke i pokušajte ponovo.');
         this.validationErrors.set(this.extractValidationErrors(error));
         this.saving.set(false);
+      },
+    });
+  }
+
+  protected deletePatient(patient: Patient): void {
+    const confirmed = confirm(
+      `Da li ste sigurni da želite da obrišete pacijenta ${this.fullName(patient)}?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.success.set('');
+    this.error.set('');
+
+    this.api.deletePatient(patient.id).subscribe({
+      next: () => {
+        this.success.set('Pacijent je uspešno obrisan.');
+        this.patients.update((patients) => patients.filter((item) => item.id !== patient.id));
+      },
+      error: (_error: HttpErrorResponse) => {
+        this.error.set('Brisanje pacijenta nije uspelo.');
       },
     });
   }

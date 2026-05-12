@@ -1,0 +1,66 @@
+<section class="page-header">
+  <span>Platforma</span>
+  <h1>Kompanije</h1>
+  <p>Lista ordinacija i kompanija na platformi.</p>
+</section>
+
+@if (loading()) {
+  <section class="state-card">
+    <div class="spinner"></div>
+    <div>
+      <strong>Učitavanje kompanija</strong>
+      <p>Molimo sačekajte dok se učitaju podaci.</p>
+    </div>
+  </section>
+} @else if (error()) {
+  <section class="state-card error">
+    <strong>{{ error() }}</strong>
+    <p>Pokušajte ponovo za nekoliko trenutaka.</p>
+  </section>
+} @else {
+  @if (success()) {
+    <div class="notice success">{{ success() }}</div>
+  }
+
+  <section class="card">
+    @if (companies().length) {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Naziv</th>
+              <th>Email</th>
+              <th>Telefon</th>
+              <th>Adresa</th>
+              <th>Osoblje</th>
+              <th>Pacijenti</th>
+              <th>Aktivni termini</th>
+              <th>Pozivnice na čekanju</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (company of companies(); track company.id) {
+              <tr>
+                <td><strong>{{ company.name }}</strong></td>
+                <td>{{ company.email || '-' }}</td>
+                <td>{{ company.phone || '-' }}</td>
+                <td>{{ company.address || '-' }}</td>
+                <td>{{ company.staff_count ?? 0 }}</td>
+                <td>{{ company.patients_count ?? 0 }}</td>
+                <td>{{ company.active_appointments_count ?? 0 }}</td>
+                <td>{{ company.pending_invites_count ?? 0 }}</td>
+                <td class="actions">
+                  <a [routerLink]="['/admin/companies', company.id]">Detalji</a>
+                  <button type="button" class="danger" (click)="deleteCompany(company)">Obriši</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="empty-state">Nema kompanija za prikaz.</div>
+    }
+  </section>
+}

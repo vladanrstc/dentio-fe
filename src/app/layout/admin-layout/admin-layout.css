@@ -1,4 +1,4 @@
-.app-shell {
+.admin-shell {
   display: flex;
   min-height: 100vh;
   background:
@@ -7,16 +7,16 @@
 }
 
 .sidebar {
-  width: 260px;
   background:
-    linear-gradient(180deg, rgba(12, 74, 80, 0.96), rgba(7, 23, 41, 0.98)),
+    linear-gradient(180deg, rgba(7, 23, 41, 0.98), rgba(12, 74, 80, 0.96)),
     #071729;
   color: white;
-  flex: 0 0 260px;
+  flex: 0 0 270px;
   height: 100vh;
   padding: 24px 20px;
   position: sticky;
   top: 0;
+  width: 270px;
   box-shadow: 18px 0 40px rgba(7, 23, 41, 0.14);
 }
 
@@ -24,7 +24,7 @@
   align-items: center;
   display: flex;
   gap: 12px;
-  margin-bottom: 36px;
+  margin-bottom: 34px;
   padding: 0 4px;
 }
 
@@ -35,20 +35,25 @@
   color: #0b4f4c;
   display: flex;
   font-weight: 900;
-  height: 44px;
+  height: 42px;
   justify-content: center;
-  width: 44px;
+  width: 42px;
+}
+
+.brand strong,
+.brand span,
+.topbar strong,
+.topbar span {
+  display: block;
 }
 
 .brand strong {
-  display: block;
-  font-size: 22px;
-  line-height: 1.1;
+  font-size: 21px;
 }
 
-.brand span {
-  font-size: 14px;
-  opacity: 0.7;
+.brand span,
+.topbar span {
+  opacity: 0.72;
 }
 
 nav {
@@ -58,13 +63,10 @@ nav {
 }
 
 nav a {
-  align-items: center;
   border: 1px solid transparent;
   border-radius: 14px;
   color: rgba(255, 255, 255, 0.82);
-  display: flex;
-  font-weight: 700;
-  gap: 10px;
+  font-weight: 800;
   padding: 12px 14px;
   text-decoration: none;
   transition:
@@ -112,12 +114,10 @@ nav a.active {
 
 .topbar strong {
   color: var(--text);
-  display: block;
 }
 
 .topbar span {
   color: var(--muted);
-  display: block;
   font-size: 14px;
   margin-top: 3px;
 }
@@ -132,10 +132,6 @@ nav a.active {
   font-weight: 800;
   min-height: 40px;
   padding: 9px 16px;
-  transition:
-    background 0.18s ease,
-    border-color 0.18s ease,
-    color 0.18s ease;
 }
 
 .topbar button:hover {
@@ -153,7 +149,7 @@ nav a.active {
 }
 
 @media (max-width: 760px) {
-  .app-shell {
+  .admin-shell {
     flex-direction: column;
   }
 
@@ -175,15 +171,5 @@ nav a.active {
 
   .content {
     padding: 20px;
-  }
-}
-
-@media (max-width: 520px) {
-  .topbar {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 10px;
-    height: auto;
-    padding: 16px 20px;
   }
 }

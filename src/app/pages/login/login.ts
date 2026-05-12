@@ -22,8 +22,8 @@ export class Login {
     this.error = '';
 
     this.auth.login(this.email, this.password).subscribe({
-      next: () => {
-        this.router.navigate(['/dashboard']);
+      next: (response) => {
+        this.router.navigate([this.auth.homePathFor(response.user)]);
       },
       error: () => {
         this.error = 'Pogresan email ili lozinka.';

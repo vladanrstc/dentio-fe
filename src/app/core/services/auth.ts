@@ -4,15 +4,17 @@ import { Observable, finalize, tap } from 'rxjs';
 
 import { Api } from './api';
 
-type LoginResponse = {
+export type AuthUser = {
+  id: number;
+  company_id: number | null;
+  name: string;
+  email: string;
+  role: string;
+};
+
+export type LoginResponse = {
   token: string;
-  user: {
-    id: number;
-    company_id: number;
-    name: string;
-    email: string;
-    role: string;
-  };
+  user: AuthUser;
 };
 
 @Injectable({
@@ -46,5 +48,32 @@ export class Auth {
 
   isLoggedIn(): boolean {
     return !!localStorage.getItem('dentio_token');
+  }
+
+  currentUser(): AuthUser | null {
+    const userJson = localStorage.getItem('dentio_user');
+
+    if (!userJson) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(userJson) as AuthUser;
+    } catch {
+      return null;
+    }
+  }
+
+  isPlatformAdmin(): boolean {
+    return this.currentUser()?.role === 'platform_admin';
+  }
+
+  isCompanyUser(): boolean {
+    const role = this.currentUser()?.role;
+    return role === 'company_admin' || role === 'dentist' || role === 'nurse';
+  }
+
+  homePathFor(user: AuthUser | null = this.currentUser()): string {
+    return user?.role === 'platform_admin' ? '/admin/dashboard' : '/dashboard';
   }
 }

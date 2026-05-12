@@ -38,7 +38,7 @@ export class Dashboard {
       {
         label: 'Podsetnici',
         value: this.readNumber(data, ['reminders_due', 'reminders', 'reminders_count']),
-        hint: 'Podsetnici koji cekaju akciju',
+        hint: 'Podsetnici koji čekaju akciju',
       },
       {
         label: 'Dugovanja',
@@ -97,7 +97,7 @@ export class Dashboard {
         this.loading.set(false);
       },
       error: () => {
-        this.error.set('Dashboard podaci trenutno nisu dostupni.');
+        this.error.set('Podaci za pregled trenutno nisu dostupni.');
         this.loading.set(false);
       },
     });

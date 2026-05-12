@@ -1,0 +1,41 @@
+<section class="page-header">
+  <span>Platforma</span>
+  <h1>Pozovi vlasnika</h1>
+  <p>Slanje pozivnice za vlasnika nove ordinacije.</p>
+</section>
+
+@if (success()) {
+  <div class="notice success">{{ success() }}</div>
+}
+
+@if (error()) {
+  <div class="notice error">
+    <strong>{{ error() }}</strong>
+    @if (validationErrors().length) {
+      <ul>
+        @for (message of validationErrors(); track message) {
+          <li>{{ message }}</li>
+        }
+      </ul>
+    }
+  </div>
+}
+
+<section class="card">
+  <h2>Nova pozivnica za vlasnika</h2>
+  <p>Unesite email adresu budućeg vlasnika ordinacije.</p>
+
+  <form [formGroup]="inviteForm" (ngSubmit)="submit()">
+    <label>
+      Email
+      <input type="email" formControlName="email" placeholder="owner@example.com" />
+      @if (fieldInvalid()) {
+        <span>Unesite validnu email adresu.</span>
+      }
+    </label>
+
+    <button type="submit" [disabled]="submitting()">
+      {{ submitting() ? 'Slanje...' : 'Pošalji pozivnicu' }}
+    </button>
+  </form>
+</section>

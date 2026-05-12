@@ -2,7 +2,7 @@
   <div>
     <span class="eyebrow">Kartoteka</span>
     <h1>Pacijenti</h1>
-    <p>Pretraga, unos i izmena pacijenata preko Laravel API-ja.</p>
+    <p>Pretraga, unos i izmena pacijenata.</p>
   </div>
 </section>
 
@@ -27,10 +27,10 @@
   <div class="panel-title">
     <div>
       <h2>{{ editingPatient() ? 'Izmena pacijenta' : 'Novi pacijent' }}</h2>
-      <p>{{ editingPatient() ? 'U toku je izmena postojeceg kartona.' : 'Unesite osnovne podatke za novi karton.' }}</p>
+      <p>{{ editingPatient() ? 'U toku je izmena postojećeg kartona.' : 'Unesite osnovne podatke za novi karton.' }}</p>
     </div>
     @if (editingPatient()) {
-      <span class="edit-badge">Edit mode</span>
+      <span class="edit-badge">Režim izmene</span>
     }
   </div>
 
@@ -71,7 +71,7 @@
       </label>
 
       <label>
-        Datum rodjenja
+        Datum rođenja
         <input type="date" formControlName="date_of_birth" />
       </label>
 
@@ -88,7 +88,7 @@
 
     <div class="form-actions">
       <button type="submit" [disabled]="saving()">
-        {{ saving() ? 'Cuvanje...' : editingPatient() ? 'Sacuvaj izmene' : 'Dodaj pacijenta' }}
+        {{ saving() ? 'Čuvanje...' : editingPatient() ? 'Sačuvaj izmene' : 'Dodaj pacijenta' }}
       </button>
       @if (editingPatient()) {
         <button type="button" class="secondary" (click)="cancelEdit()" [disabled]="saving()">Odustani</button>
@@ -101,15 +101,15 @@
   <div class="table-toolbar">
     <div>
       <h2>Lista pacijenata</h2>
-      <p>Pretraga salje `search` query param na API.</p>
+      <p>Pretražite pacijente po imenu, telefonu ili email adresi.</p>
     </div>
-    <input type="search" [formControl]="searchControl" placeholder="Pretrazi po imenu, telefonu ili emailu..." />
+    <input type="search" [formControl]="searchControl" placeholder="Pretraži po imenu, telefonu ili emailu..." />
   </div>
 
   @if (loading()) {
     <div class="loading-row">
       <div class="spinner"></div>
-      <span>Ucitavanje pacijenata...</span>
+      <span>Učitavanje pacijenata...</span>
     </div>
   } @else if (patients().length) {
     <div class="table-wrap">
@@ -129,7 +129,7 @@
             <tr>
               <td>
                 <strong>{{ fullName(patient) }}</strong>
-                <span class="subtext">ID {{ patient.id }}</span>
+                <span class="subtext">Šifra {{ patient.id }}</span>
               </td>
               <td>
                 <span>{{ patient.email || '-' }}</span>
@@ -141,6 +141,7 @@
               <td class="actions">
                 <a [routerLink]="['/patients', patient.id]">Detalji</a>
                 <button type="button" (click)="startEdit(patient)">Izmeni</button>
+                <button type="button" class="danger" (click)="deletePatient(patient)">Obriši</button>
               </td>
             </tr>
           }

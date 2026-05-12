@@ -4,28 +4,45 @@
   <section class="state-card">
     <div class="spinner"></div>
     <div>
-      <strong>Ucitavanje pacijenta</strong>
-      <p>Podaci se preuzimaju iz Laravel API-ja.</p>
+      <strong>Učitavanje pacijenta</strong>
+      <p>Molimo sačekajte dok se učita karton pacijenta.</p>
     </div>
   </section>
 } @else if (error()) {
   <section class="state-card error">
     <strong>{{ error() }}</strong>
-    <p>Proverite da li pacijent postoji i da li je API dostupan.</p>
+    <p>Proverite da li pacijent postoji i pokušajte ponovo.</p>
   </section>
 } @else if (patient(); as patient) {
   <section class="detail-hero">
     <div>
       <span class="eyebrow">Karton pacijenta</span>
       <h1>{{ patientName() }}</h1>
-      <p>{{ patient.email || 'Email nije unet' }} · {{ patient.phone || 'Telefon nije unet' }}</p>
+      <p>{{ patient.email || 'Email nije unet' }} / {{ patient.phone || 'Telefon nije unet' }}</p>
     </div>
 
     <div class="hero-meta">
-      <span>Status</span>
-      <strong>{{ patient.manual_status || 'Nije postavljen' }}</strong>
+      <span>Stanje</span>
+      <strong class="status-badge">{{ statusLabel(patient.manual_status) }}</strong>
     </div>
   </section>
+
+  @if (success()) {
+    <div class="notice success">{{ success() }}</div>
+  }
+
+  @if (formError()) {
+    <div class="notice error">
+      <strong>{{ formError() }}</strong>
+      @if (validationErrors().length) {
+        <ul>
+          @for (message of validationErrors(); track message) {
+            <li>{{ message }}</li>
+          }
+        </ul>
+      }
+    </div>
+  }
 
   <section class="summary-grid">
     <article>
@@ -33,7 +50,7 @@
       <strong>{{ formatMoney(patient.financials?.total_cost) }}</strong>
     </article>
     <article>
-      <span>Placeno</span>
+      <span>Plaćeno</span>
       <strong>{{ formatMoney(patient.financials?.paid_amount) }}</strong>
     </article>
     <article>
@@ -41,8 +58,8 @@
       <strong>{{ formatMoney(patient.financials?.outstanding_amount) }}</strong>
     </article>
     <article>
-      <span>Otvorene stavke</span>
-      <strong>{{ patient.open_tasks_count ?? 0 }}</strong>
+      <span>Aktivni zadaci</span>
+      <strong>{{ activeItems().length }}</strong>
     </article>
   </section>
 
@@ -77,34 +94,36 @@
 
     <article class="card">
       <div class="card-header">
-        <h2>Status pacijenta</h2>
+        <h2>Stanje pacijenta</h2>
       </div>
       <div class="status-block">
-        <span>{{ patient.manual_status || 'Nije postavljen' }}</span>
-        <p>{{ patient.manual_status_reason || 'Razlog statusa nije unet.' }}</p>
-      </div>
-      <div class="missing-endpoint">
-        Promena statusa nije dodata jer nema dokumentovanog API endpoint-a za status pacijenta.
+        <span class="status-badge">{{ statusLabel(patient.manual_status) }}</span>
+        <p>{{ patient.manual_status_reason || 'Razlog nije unet.' }}</p>
       </div>
     </article>
 
     <article class="card">
       <div class="card-header">
-        <h2>Aktivne stavke / sledeci koraci</h2>
+        <h2>Aktivni zadaci</h2>
       </div>
       @if (activeItems().length) {
         <div class="list">
           @for (item of activeItems(); track item.id) {
-            <div class="list-row">
-              <strong>{{ activeItemTitle(item) }}</strong>
-              <span>{{ item.status || 'Bez statusa' }}</span>
+            <div class="list-row task-row">
+              <div>
+                <strong>{{ activeItemTitle(item) }}</strong>
+                <span>Rok: {{ activeItemDueDate(item) }} / {{ statusLabel(item.status) }}</span>
+                <span>Zadužen: {{ staffName(item.assigned_to_user) }}</span>
+              </div>
+              <button type="button" class="compact" (click)="completeTask(item.id)" [disabled]="completingTaskId() === item.id">
+                {{ completingTaskId() === item.id ? 'Završavanje...' : 'Završi' }}
+              </button>
             </div>
           }
         </div>
       } @else {
         <div class="empty-state">
-          <strong>Nema aktivnih stavki za prikaz.</strong>
-          <p>API za detail trenutno ne vraca listu aktivnih stavki, samo broj otvorenih stavki.</p>
+          <strong>Nema aktivnih zadataka za ovog pacijenta.</strong>
         </div>
       }
     </article>
@@ -117,15 +136,17 @@
         <div class="list">
           @for (appointment of appointments(); track appointment.id) {
             <div class="list-row">
-              <strong>{{ appointmentTitle(appointment) }}</strong>
-              <span>{{ appointmentTime(appointment) }}</span>
+              <div>
+                <strong>{{ appointmentTitle(appointment) }}</strong>
+                <span>{{ appointmentRange(appointment) }}</span>
+              </div>
+              <span>{{ staffName(appointment.assigned_user) }}</span>
             </div>
           }
         </div>
       } @else {
         <div class="empty-state">
-          <strong>Nema termina za prikaz.</strong>
-          <p>API za detail trenutno ne vraca termine pacijenta.</p>
+          <strong>Nema zakazanih termina.</strong>
         </div>
       }
     </article>
@@ -138,15 +159,17 @@
         <div class="list">
           @for (intervention of interventions(); track intervention.id) {
             <div class="list-row">
-              <strong>{{ interventionTitle(intervention) }}</strong>
-              <span>{{ formatMoney(intervention.price) }}</span>
+              <div>
+                <strong>{{ interventionTitle(intervention) }}</strong>
+                <span>{{ formatDate(intervention.intervention_date ?? intervention.date ?? intervention.created_at) }}</span>
+              </div>
+              <span>{{ interventionCost(intervention) }}</span>
             </div>
           }
         </div>
       } @else {
         <div class="empty-state">
-          <strong>Nema intervencija za prikaz.</strong>
-          <p>API za detail trenutno ne vraca intervencije pacijenta.</p>
+          <strong>Nema evidentiranih intervencija.</strong>
         </div>
       }
     </article>
@@ -161,7 +184,7 @@
           <dd>{{ formatMoney(patient.financials?.total_cost) }}</dd>
         </div>
         <div>
-          <dt>Placeno</dt>
+          <dt>Plaćeno</dt>
           <dd>{{ formatMoney(patient.financials?.paid_amount) }}</dd>
         </div>
         <div>
@@ -172,8 +195,221 @@
     </article>
   </section>
 
-  <section class="card forms-note">
-    <h2>Forme na kartonu pacijenta</h2>
-    <p>Nisu dodate forme za novi termin, novu intervenciju, novu aktivnu stavku i promenu statusa, jer u dostupnom API spisku ne postoje endpoint-i za te akcije.</p>
+  <section class="forms-grid">
+    <article class="card form-card">
+      <div class="card-header">
+        <h2>Novi termin</h2>
+        <p>Unesite vreme, tip termina i zaduzenog clana osoblja.</p>
+      </div>
+      <form [formGroup]="appointmentForm" (ngSubmit)="submitAppointment()">
+        <div class="form-grid">
+          <label>
+            Početak
+            <input type="datetime-local" formControlName="starts_at" />
+            @if (fieldInvalid('appointment', 'starts_at')) {
+              <span>Početak termina je obavezan.</span>
+            }
+          </label>
+          <label>
+            Kraj
+            <input type="datetime-local" formControlName="ends_at" />
+            @if (fieldInvalid('appointment', 'ends_at')) {
+              <span>Kraj termina je obavezan.</span>
+            }
+          </label>
+          <label>
+            Tip
+            <select formControlName="type">
+              <option value="">Izaberi tip termina</option>
+              @for (type of appointmentTypeOptions; track type.value) {
+                <option [value]="type.value">{{ type.label }}</option>
+              }
+            </select>
+            @if (fieldInvalid('appointment', 'type')) {
+              <span>Tip termina je obavezan.</span>
+            }
+          </label>
+          <label>
+            Zaduženi član osoblja
+            <select formControlName="assigned_user_id">
+              <option value="">Izaberi osobu</option>
+              @for (member of staff(); track member.id) {
+                <option [value]="member.id">{{ member.name }}</option>
+              }
+            </select>
+            @if (fieldInvalid('appointment', 'assigned_user_id')) {
+              <span>Zaduženi član osoblja je obavezan.</span>
+            }
+          </label>
+          <label>
+            Podsetnik za osoblje
+            <input type="datetime-local" formControlName="reminder_staff_at" />
+          </label>
+          <label>
+            Podsetnik za pacijenta
+            <input type="datetime-local" formControlName="reminder_patient_at" />
+          </label>
+          <label class="full">
+            Napomena
+            <textarea formControlName="notes" rows="3"></textarea>
+          </label>
+        </div>
+        <button type="submit" [disabled]="appointmentSubmitting()">
+          {{ appointmentSubmitting() ? 'Čuvanje...' : 'Sačuvaj termin' }}
+        </button>
+      </form>
+    </article>
+
+    <article class="card form-card">
+      <div class="card-header">
+        <h2>Nova intervencija</h2>
+        <p>Intervencija može odmah napraviti sledeći korak i finansijski zapis.</p>
+      </div>
+      <form [formGroup]="interventionForm" (ngSubmit)="submitIntervention()">
+        <div class="form-grid">
+          <label>
+            Naziv
+            <input type="text" formControlName="title" />
+            @if (fieldInvalid('intervention', 'title')) {
+              <span>Naziv intervencije je obavezan.</span>
+            }
+          </label>
+          <label>
+            Datum intervencije
+            <input type="date" formControlName="intervention_date" />
+            @if (fieldInvalid('intervention', 'intervention_date')) {
+              <span>Datum intervencije je obavezan.</span>
+            }
+          </label>
+          <label>
+            Termin
+            <select formControlName="appointment_id">
+              <option value="">Bez povezanog termina</option>
+              @for (appointment of appointments(); track appointment.id) {
+                <option [value]="appointment.id">{{ appointmentTitle(appointment) }} - {{ appointmentTime(appointment) }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            Izvršio
+            <select formControlName="performed_by_user_id">
+              <option value="">Izaberi osobu</option>
+              @for (member of staff(); track member.id) {
+                <option [value]="member.id">{{ member.name }}</option>
+              }
+            </select>
+            @if (fieldInvalid('intervention', 'performed_by_user_id')) {
+              <span>Izvršilac je obavezan.</span>
+            }
+          </label>
+          <label>
+            Zadužen za sledeći korak
+            <select formControlName="assigned_to_user_id">
+              <option value="">Izaberi osobu</option>
+              @for (member of staff(); track member.id) {
+                <option [value]="member.id">{{ member.name }}</option>
+              }
+            </select>
+            @if (fieldInvalid('intervention', 'assigned_to_user_id')) {
+              <span>Zaduženi član osoblja je obavezan.</span>
+            }
+          </label>
+          <label>
+            Rok sledećeg koraka
+            <input type="date" formControlName="task_due_date" />
+          </label>
+          <label>
+            Ukupna cena
+            <input type="number" min="0" formControlName="total_cost" />
+          </label>
+          <label>
+            Plaćeno
+            <input type="number" min="0" formControlName="paid_amount" />
+          </label>
+          <label>
+            Podsetnik za osoblje
+            <input type="datetime-local" formControlName="reminder_staff_at" />
+          </label>
+          <label>
+            Podsetnik za pacijenta
+            <input type="datetime-local" formControlName="reminder_patient_at" />
+          </label>
+          <label class="full">
+            Opis
+            <textarea formControlName="description" rows="3"></textarea>
+          </label>
+          <label class="full">
+            Sledeci korak
+            <textarea formControlName="next_step" rows="3"></textarea>
+          </label>
+        </div>
+        <button type="submit" [disabled]="interventionSubmitting()">
+          {{ interventionSubmitting() ? 'Čuvanje...' : 'Sačuvaj intervenciju' }}
+        </button>
+      </form>
+    </article>
+
+    <article class="card form-card">
+      <div class="card-header">
+        <h2>Novi zadatak</h2>
+        <p>Zadatak se prikazuje u aktivnim stavkama dok se ne završi.</p>
+      </div>
+      <form [formGroup]="taskForm" (ngSubmit)="submitTask()">
+        <div class="form-grid one-column">
+          <label>
+            Opis zadatka
+            <textarea formControlName="description" rows="3"></textarea>
+            @if (fieldInvalid('task', 'description')) {
+              <span>Opis zadatka je obavezan.</span>
+            }
+          </label>
+          <label>
+            Rok
+            <input type="date" formControlName="due_date" />
+          </label>
+          <label>
+            Zaduženi član osoblja
+            <select formControlName="assigned_to_user_id">
+              <option value="">Izaberi osobu</option>
+              @for (member of staff(); track member.id) {
+                <option [value]="member.id">{{ member.name }}</option>
+              }
+            </select>
+            @if (fieldInvalid('task', 'assigned_to_user_id')) {
+              <span>Zaduženi član osoblja je obavezan.</span>
+            }
+          </label>
+        </div>
+        <button type="submit" [disabled]="taskSubmitting()">
+          {{ taskSubmitting() ? 'Čuvanje...' : 'Sačuvaj zadatak' }}
+        </button>
+      </form>
+    </article>
+
+    <article class="card form-card">
+      <div class="card-header">
+        <h2>Promena stanja</h2>
+        <p>Promenite trenutno stanje pacijenta i upišite razlog ako je potreban.</p>
+      </div>
+      <form [formGroup]="statusForm" (ngSubmit)="submitStatus()">
+        <div class="form-grid one-column">
+          <label>
+            Stanje
+            <select formControlName="manual_status">
+              @for (status of statusOptions; track status.value) {
+                <option [value]="status.value">{{ status.label }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            Razlog promene
+            <textarea formControlName="manual_status_reason" rows="4"></textarea>
+          </label>
+        </div>
+        <button type="submit" [disabled]="statusSubmitting()">
+          {{ statusSubmitting() ? 'Čuvanje...' : 'Sačuvaj stanje' }}
+        </button>
+      </form>
+    </article>
   </section>
 }

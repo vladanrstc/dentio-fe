@@ -4,24 +4,34 @@
       <div class="brand-mark">D</div>
       <div>
         <strong>Dentio</strong>
-        <span>Dental SaaS</span>
+        <span>Upravljanje ordinacijom</span>
       </div>
     </div>
 
     <nav aria-label="Glavna navigacija">
       <a routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-        <span>Dashboard</span>
+        <span>Pregled</span>
       </a>
       <a routerLink="/patients" routerLinkActive="active">
         <span>Pacijenti</span>
       </a>
+      @if (canViewTeam) {
+        <a routerLink="/team" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+          <span>Tim</span>
+        </a>
+      }
+      @if (canManageInvites) {
+        <a routerLink="/team/invites" routerLinkActive="active">
+          <span>Pozivnice</span>
+        </a>
+      }
     </nav>
   </aside>
 
   <section class="main-area">
     <header class="topbar">
       <div>
-        <strong>Dentio admin</strong>
+        <strong>Radni panel</strong>
         <span>Dentio ordinacija</span>
       </div>
 

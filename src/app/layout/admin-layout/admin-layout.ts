@@ -4,19 +4,17 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { Auth } from '../../core/services/auth';
 
 @Component({
-  selector: 'app-main-layout',
+  selector: 'app-admin-layout',
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
-  templateUrl: './main-layout.html',
-  styleUrl: './main-layout.css',
+  templateUrl: './admin-layout.html',
+  styleUrl: './admin-layout.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class MainLayout {
+export class AdminLayout {
   private readonly auth = inject(Auth);
   private readonly router = inject(Router);
 
   protected readonly user = this.auth.currentUser();
-  protected readonly canViewTeam = this.auth.isCompanyUser();
-  protected readonly canManageInvites = this.user?.role === 'company_admin';
 
   logout(): void {
     this.auth.logout().subscribe({
@@ -28,5 +26,4 @@ export class MainLayout {
       },
     });
   }
-
 }

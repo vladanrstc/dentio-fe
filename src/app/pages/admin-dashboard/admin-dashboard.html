@@ -1,0 +1,83 @@
+<section class="page-header">
+  <span>Platforma</span>
+  <h1>Pregled platforme</h1>
+  <p>Pregled najvažnijih podataka o platformi.</p>
+</section>
+
+@if (loading()) {
+  <section class="state-card">
+    <div class="spinner"></div>
+    <div>
+      <strong>Učitavanje pregleda</strong>
+      <p>Molimo sačekajte dok se učitaju podaci.</p>
+    </div>
+  </section>
+} @else if (error()) {
+  <section class="state-card error">
+    <strong>{{ error() }}</strong>
+    <p>Pokušajte ponovo za nekoliko trenutaka.</p>
+  </section>
+} @else if (dashboard(); as dashboard) {
+  @if (success()) {
+    <div class="notice success">{{ success() }}</div>
+  }
+
+  <section class="kpi-grid">
+    @for (card of cards(); track card.label) {
+      <article>
+        <span>{{ card.label }}</span>
+        <strong>{{ card.value }}</strong>
+      </article>
+    }
+  </section>
+
+  <section class="content-grid">
+    <article class="card">
+      <div class="card-header">
+        <h2>Poslednje kompanije</h2>
+        <a routerLink="/admin/companies">Sve kompanije</a>
+      </div>
+      @if (dashboard.latest_companies?.length) {
+        <div class="list">
+          @for (company of dashboard.latest_companies; track company.id) {
+            <a class="list-row" [routerLink]="['/admin/companies', company.id]">
+              <div>
+                <strong>{{ company.name }}</strong>
+                <span>{{ company.email || '-' }} / {{ company.phone || '-' }}</span>
+              </div>
+              <span>{{ company.patients_count ?? 0 }} pacijenata</span>
+            </a>
+          }
+        </div>
+      } @else {
+        <div class="empty-state">Nema kompanija za prikaz.</div>
+      }
+    </article>
+
+    <article class="card">
+      <div class="card-header">
+        <h2>Poslednje pozivnice</h2>
+      </div>
+      @if (activeInvites().length) {
+        <div class="list">
+          @for (invite of activeInvites(); track invite.id) {
+            <div class="list-row">
+              <div>
+                <strong>{{ invite.email }}</strong>
+                <span>{{ inviteContext(invite) }} / {{ formatDate(invite.created_at) }}</span>
+              </div>
+              <div class="row-actions">
+                <span class="badge">{{ statusLabel(invite.status) }}</span>
+                @if (canDeleteInvite(invite)) {
+                  <button type="button" class="danger" (click)="deleteInvite(invite)">Obriši</button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-state">Trenutno nema aktivnih pozivnica.</div>
+      }
+    </article>
+  </section>
+}

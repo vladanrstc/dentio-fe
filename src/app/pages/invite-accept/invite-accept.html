@@ -1,0 +1,137 @@
+<main class="activation-page">
+  <section class="activation-card">
+    <div class="brand">
+      <div class="brand-mark">D</div>
+      <div>
+        <strong>Dentio</strong>
+        <span>Aktivacija naloga</span>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <div class="state">
+        <div class="spinner"></div>
+        <div>
+          <strong>Učitavanje pozivnice</strong>
+          <p>Molimo sačekajte dok proverimo pozivnicu.</p>
+        </div>
+      </div>
+    } @else if (error() && !invite()) {
+      <div class="notice error">
+        <strong>{{ error() }}</strong>
+        <p>Kontaktirajte osobu koja vam je poslala pozivnicu.</p>
+      </div>
+    } @else if (invite(); as invite) {
+      <header class="page-header">
+        <span>Pozivnica</span>
+        <h1>Aktivirajte nalog</h1>
+        <p>{{ invite.email }} / {{ roleLabel(invite.role) }}</p>
+      </header>
+
+      <section class="invite-summary">
+        <div>
+          <span>Email</span>
+          <strong>{{ invite.email }}</strong>
+        </div>
+        <div>
+          <span>Uloga</span>
+          <strong>{{ roleLabel(invite.role) }}</strong>
+        </div>
+        <div>
+          <span>Ističe</span>
+          <strong>{{ formatDate(invite.expires_at) }}</strong>
+        </div>
+      </section>
+
+      @if (!canActivateInvite()) {
+        <div class="notice warning">
+          <strong>Pozivnica nije dostupna za aktivaciju.</strong>
+          <p>Može biti već iskorišćena, istekla ili više nije važeća.</p>
+        </div>
+      } @else if (success()) {
+        <div class="success-card">
+          <div>
+            <span>Aktivacija završena</span>
+            <strong>Nalog je uspešno aktiviran.</strong>
+          </div>
+          <a routerLink="/login">Idi na prijavu</a>
+        </div>
+      } @else {
+        @if (error()) {
+          <div class="notice error">
+            <strong>{{ error() }}</strong>
+            @if (validationErrors().length) {
+              <ul>
+                @for (message of validationErrors(); track message) {
+                  <li>{{ message }}</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+
+        <form [formGroup]="activationForm" (ngSubmit)="submit()">
+          <div class="form-grid">
+            <label>
+              Ime
+              <input type="text" formControlName="first_name" />
+              @if (fieldInvalid('first_name')) {
+                <span>Ime je obavezno.</span>
+              }
+            </label>
+
+            <label>
+              Prezime
+              <input type="text" formControlName="last_name" />
+              @if (fieldInvalid('last_name')) {
+                <span>Prezime je obavezno.</span>
+              }
+            </label>
+
+            <label>
+              Telefon
+              <input type="text" formControlName="phone" />
+            </label>
+
+            <label>
+              Lozinka
+              <input type="password" formControlName="password" />
+              @if (fieldInvalid('password')) {
+                <span>Lozinka mora imati najmanje 8 karaktera.</span>
+              }
+            </label>
+
+            <label>
+              Potvrda lozinke
+              <input type="password" formControlName="password_confirmation" />
+              @if (fieldInvalid('password_confirmation')) {
+                <span>Potvrda lozinke je obavezna.</span>
+              }
+            </label>
+
+            @if (invite.requires_company) {
+              <label>
+                Naziv ordinacije
+                <input type="text" formControlName="company_name" />
+              </label>
+
+              <label>
+                Adresa ordinacije
+                <input type="text" formControlName="company_address" />
+              </label>
+
+              <label>
+                Telefon ordinacije
+                <input type="text" formControlName="company_phone" />
+              </label>
+            }
+          </div>
+
+          <button type="submit" [disabled]="submitting()">
+            {{ submitting() ? 'Aktivacija...' : 'Aktiviraj nalog' }}
+          </button>
+        </form>
+      }
+    }
+  </section>
+</main>
