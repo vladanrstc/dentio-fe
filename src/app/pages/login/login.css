@@ -77,9 +77,15 @@
   background: #115e59;
 }
 
-.error {
+.error,
+.field-error {
   padding: 10px 12px;
   background: #fee2e2;
   color: #991b1b;
   border-radius: 10px;
+}
+
+.field-error {
+  font-size: 13px;
+  padding: 8px 10px;
 }

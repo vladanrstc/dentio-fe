@@ -11,7 +11,7 @@ import {
   StaffMember,
 } from '../../core/models/api.models';
 import { PatientsApi } from '../../core/services/patients-api.service';
-import { formatDate, formatMoney } from '../../core/utils/formatters';
+import { formatDate, formatMoney, toApiDate, toApiDateTime as formatToApiDateTime } from '../../core/utils/formatters';
 import { extractValidationErrors, unwrapCollection } from '../../core/utils/http-helpers';
 import { statusLabel } from '../../core/utils/role-label';
 
@@ -233,11 +233,11 @@ export class PatientDetail {
         title: value.title ?? '',
         description: this.emptyToNull(value.description),
         next_step: this.emptyToNull(value.next_step),
-        intervention_date: value.intervention_date ?? '',
+        intervention_date: toApiDate(value.intervention_date),
         appointment_id: this.toNumberOrNull(value.appointment_id),
         performed_by_user_id: this.toNumberOrNull(value.performed_by_user_id),
         assigned_to_user_id: this.toNumberOrNull(value.assigned_to_user_id),
-        task_due_date: this.emptyToNull(value.task_due_date),
+        task_due_date: this.emptyToNull(toApiDate(value.task_due_date)),
         total_cost: Number(value.total_cost ?? 0),
         paid_amount: Number(value.paid_amount ?? 0),
         reminder_staff_at: this.toApiDateTimeOrNull(value.reminder_staff_at),
@@ -271,7 +271,7 @@ export class PatientDetail {
     this.patientsApi
       .createPatientTask(this.patientId, {
         description: value.description ?? '',
-        due_date: this.emptyToNull(value.due_date),
+        due_date: this.emptyToNull(toApiDate(value.due_date)),
         assigned_to_user_id: this.toNumberOrNull(value.assigned_to_user_id),
       })
       .subscribe({
@@ -392,7 +392,7 @@ export class PatientDetail {
   }
 
   private toApiDateTime(value: string | null | undefined): string {
-    return (value ?? '').replace('T', ' ');
+    return formatToApiDateTime(value);
   }
 
   private toApiDateTimeOrNull(value: string | null | undefined): string | null {

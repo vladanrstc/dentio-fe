@@ -112,6 +112,10 @@ describe('Patients', () => {
     expect(reportsApi.exportPatients).toHaveBeenCalledWith({
       format: 'csv',
       search: '',
+      status: '',
+      primary_dentist_id: '',
+      has_open_tasks: '',
+      has_debt: '',
     });
     expect(fileDownload.download).toHaveBeenCalledWith(expect.any(Blob), 'pacijenti.csv');
   });

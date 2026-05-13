@@ -203,6 +203,13 @@ button.secondary:hover,
   min-width: 110px;
 }
 
+.export-filter-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  margin-bottom: 18px;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
@@ -292,10 +299,15 @@ td strong {
   .form-grid {
     grid-template-columns: repeat(2, minmax(180px, 1fr));
   }
+
+  .export-filter-grid {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
 }
 
 @media (max-width: 700px) {
-  .form-grid {
+  .form-grid,
+  .export-filter-grid {
     grid-template-columns: 1fr;
   }
 

@@ -45,7 +45,7 @@ describe('Login', () => {
     expect(component).toBeTruthy();
   });
 
-  it('forma je prazna i submit šalje email i lozinku', async () => {
+  it('forma je prazna i submit salje email i lozinku', async () => {
     const inputs = fixture.debugElement.queryAll(By.css('input'));
 
     expect((inputs[0].nativeElement as HTMLInputElement).value).toBe('');
@@ -63,7 +63,7 @@ describe('Login', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
   });
 
-  it('prikazuje grešku kada login ne uspe', async () => {
+  it('prikazuje gresku kada login ne uspe', async () => {
     auth.login.mockReturnValue(throwError(() => new Error('invalid')));
 
     component.email = 'wrong@test.rs';
@@ -72,7 +72,20 @@ describe('Login', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Pogre');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Email ili lozinka nisu ispravni.');
     expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it('prikazuje validacione greske za prazna polja', async () => {
+    fixture.debugElement.query(By.css('form')).triggerEventHandler('ngSubmit');
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+
+    expect(auth.login).not.toHaveBeenCalled();
+    expect(text).toContain('Unesite email i lozinku.');
+    expect(text).toContain('Unesite validan email.');
+    expect(text).toContain('Unesite lozinku.');
   });
 });

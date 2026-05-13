@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, beforeEach, expect, it, vi } from 'vitest';
 
@@ -92,5 +92,65 @@ describe('ReportSettings', () => {
       frequency,
       format: 'pdf',
     });
+  });
+});
+
+describe('ReportSettings admin mode', () => {
+  let fixture: ComponentFixture<ReportSettings>;
+  let reportsApi: {
+    getCompanyReportSubscriptions: ReturnType<typeof vi.fn>;
+    saveCompanyReportSubscription: ReturnType<typeof vi.fn>;
+    getAdminReportSubscriptions: ReturnType<typeof vi.fn>;
+    saveAdminReportSubscription: ReturnType<typeof vi.fn>;
+  };
+
+  beforeEach(async () => {
+    reportsApi = {
+      getCompanyReportSubscriptions: vi.fn(() => of({ data: [] })),
+      saveCompanyReportSubscription: vi.fn(() => of({ data: { report: 'patients', frequency: 'daily', format: 'csv' } })),
+      getAdminReportSubscriptions: vi.fn(() =>
+        of({
+          data: [
+            {
+              report: 'companies',
+              frequency: 'monthly',
+              format: 'pdf',
+            },
+          ],
+        }),
+      ),
+      saveAdminReportSubscription: vi.fn(() => of({ data: { report: 'companies', frequency: 'monthly', format: 'pdf' } })),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [ReportSettings],
+      providers: [
+        provideRouter([]),
+        { provide: ReportsApi, useValue: reportsApi },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              data: { reportMode: 'admin' },
+            },
+          },
+        },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(ReportSettings);
+    fixture.detectChanges();
+    await fixture.whenStable();
+  });
+
+  it('superadmin vidi samo companies report i koristi admin subscription rute', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(reportsApi.getAdminReportSubscriptions).toHaveBeenCalledOnce();
+    expect(reportsApi.getCompanyReportSubscriptions).not.toHaveBeenCalled();
+    expect(compiled.textContent).toContain('Kompanije');
+    expect(compiled.textContent).not.toContain('Pacijenti');
+    expect(compiled.textContent).not.toContain('Termini');
+    expect(compiled.textContent).not.toContain('Intervencije i finansije');
   });
 });

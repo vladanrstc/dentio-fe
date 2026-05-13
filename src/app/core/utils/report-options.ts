@@ -47,7 +47,7 @@ export const REPORT_OPTIONS: ReportOption[] = [
 ];
 
 export function reportOptionsForMode(mode: ReportSettingsMode): ReportOption[] {
-  return REPORT_OPTIONS.filter((report) => mode === 'admin' || !report.adminOnly);
+  return REPORT_OPTIONS.filter((report) => (mode === 'admin' ? report.adminOnly : !report.adminOnly));
 }
 
 export function reportOptionLabel(reportKey: string): string {

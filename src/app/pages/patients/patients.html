@@ -120,6 +120,47 @@
     <div class="notice error">{{ exportError() }}</div>
   }
 
+  <form class="export-filter-grid" [formGroup]="exportFiltersForm">
+    <label>
+      Status
+      <select formControlName="status">
+        <option value="">Svi statusi</option>
+        <option value="active">Aktivan</option>
+        <option value="inactive">Neaktivan</option>
+        <option value="transferred">Premešten</option>
+        <option value="completed">Završen</option>
+      </select>
+    </label>
+
+    <label>
+      Primarni stomatolog
+      <select formControlName="primary_dentist_id">
+        <option value="">Svi stomatolozi</option>
+        @for (dentist of staff(); track dentist.id) {
+          <option [value]="dentist.id">{{ dentist.name }}</option>
+        }
+      </select>
+    </label>
+
+    <label>
+      Otvoreni zadaci
+      <select formControlName="has_open_tasks">
+        <option value="">Svi pacijenti</option>
+        <option value="1">Ima otvorene zadatke</option>
+        <option value="0">Nema otvorene zadatke</option>
+      </select>
+    </label>
+
+    <label>
+      Dugovanje
+      <select formControlName="has_debt">
+        <option value="">Svi pacijenti</option>
+        <option value="1">Ima dugovanje</option>
+        <option value="0">Nema dugovanje</option>
+      </select>
+    </label>
+  </form>
+
   @if (loading()) {
     <div class="loading-row">
       <div class="spinner"></div>
