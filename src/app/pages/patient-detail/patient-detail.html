@@ -205,14 +205,24 @@
         <div class="form-grid">
           <label>
             Početak
-            <input type="datetime-local" formControlName="starts_at" />
+            <app-serbian-date-picker
+              mode="datetime"
+              placeholder="dd.MM.yyyy. HH:mm"
+              errorText="Unesite datum i vreme u formatu dd.MM.yyyy. HH:mm"
+              formControlName="starts_at"
+            />
             @if (fieldInvalid('appointment', 'starts_at')) {
               <span>Početak termina je obavezan.</span>
             }
           </label>
           <label>
             Kraj
-            <input type="datetime-local" formControlName="ends_at" />
+            <app-serbian-date-picker
+              mode="datetime"
+              placeholder="dd.MM.yyyy. HH:mm"
+              errorText="Unesite datum i vreme u formatu dd.MM.yyyy. HH:mm"
+              formControlName="ends_at"
+            />
             @if (fieldInvalid('appointment', 'ends_at')) {
               <span>Kraj termina je obavezan.</span>
             }
@@ -243,11 +253,21 @@
           </label>
           <label>
             Podsetnik za osoblje
-            <input type="datetime-local" formControlName="reminder_staff_at" />
+            <app-serbian-date-picker
+              mode="datetime"
+              placeholder="dd.MM.yyyy. HH:mm"
+              errorText="Unesite datum i vreme u formatu dd.MM.yyyy. HH:mm"
+              formControlName="reminder_staff_at"
+            />
           </label>
           <label>
             Podsetnik za pacijenta
-            <input type="datetime-local" formControlName="reminder_patient_at" />
+            <app-serbian-date-picker
+              mode="datetime"
+              placeholder="dd.MM.yyyy. HH:mm"
+              errorText="Unesite datum i vreme u formatu dd.MM.yyyy. HH:mm"
+              formControlName="reminder_patient_at"
+            />
           </label>
           <label class="full">
             Napomena
@@ -276,7 +296,7 @@
           </label>
           <label>
             Datum intervencije
-            <input type="date" formControlName="intervention_date" />
+            <app-serbian-date-picker formControlName="intervention_date" />
             @if (fieldInvalid('intervention', 'intervention_date')) {
               <span>Datum intervencije je obavezan.</span>
             }
@@ -316,7 +336,7 @@
           </label>
           <label>
             Rok sledećeg koraka
-            <input type="date" formControlName="task_due_date" />
+            <app-serbian-date-picker formControlName="task_due_date" />
           </label>
           <label>
             Ukupna cena
@@ -328,11 +348,21 @@
           </label>
           <label>
             Podsetnik za osoblje
-            <input type="datetime-local" formControlName="reminder_staff_at" />
+            <app-serbian-date-picker
+              mode="datetime"
+              placeholder="dd.MM.yyyy. HH:mm"
+              errorText="Unesite datum i vreme u formatu dd.MM.yyyy. HH:mm"
+              formControlName="reminder_staff_at"
+            />
           </label>
           <label>
             Podsetnik za pacijenta
-            <input type="datetime-local" formControlName="reminder_patient_at" />
+            <app-serbian-date-picker
+              mode="datetime"
+              placeholder="dd.MM.yyyy. HH:mm"
+              errorText="Unesite datum i vreme u formatu dd.MM.yyyy. HH:mm"
+              formControlName="reminder_patient_at"
+            />
           </label>
           <label class="full">
             Opis
@@ -365,7 +395,7 @@
           </label>
           <label>
             Rok
-            <input type="date" formControlName="due_date" />
+            <app-serbian-date-picker formControlName="due_date" />
           </label>
           <label>
             Zaduženi član osoblja

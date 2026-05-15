@@ -12,10 +12,11 @@ import { ReportsApi } from '../../core/services/reports-api.service';
 import { formatMoney, toApiDate } from '../../core/utils/formatters';
 import { extractValidationErrors, unwrapCollection } from '../../core/utils/http-helpers';
 import { reportExportErrorMessage, reportFilename } from '../../core/utils/report-utils';
+import { SerbianDatePicker } from '../../shared/components/serbian-date-picker/serbian-date-picker';
 
 @Component({
   selector: 'app-patients',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, SerbianDatePicker],
   templateUrl: './patients.html',
   styleUrl: './patients.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

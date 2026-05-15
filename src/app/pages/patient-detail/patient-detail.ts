@@ -14,12 +14,13 @@ import { PatientsApi } from '../../core/services/patients-api.service';
 import { formatDate, formatMoney, toApiDate, toApiDateTime as formatToApiDateTime } from '../../core/utils/formatters';
 import { extractValidationErrors, unwrapCollection } from '../../core/utils/http-helpers';
 import { statusLabel } from '../../core/utils/role-label';
+import { SerbianDatePicker } from '../../shared/components/serbian-date-picker/serbian-date-picker';
 
 type FormName = 'appointment' | 'intervention' | 'task' | 'status' | 'completeTask';
 
 @Component({
   selector: 'app-patient-detail',
-  imports: [RouterLink, ReactiveFormsModule],
+  imports: [RouterLink, ReactiveFormsModule, SerbianDatePicker],
   templateUrl: './patient-detail.html',
   styleUrl: './patient-detail.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

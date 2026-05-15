@@ -15,6 +15,8 @@ describe('Patients', () => {
   let patientsApi: {
     getStaff: ReturnType<typeof vi.fn>;
     getPatients: ReturnType<typeof vi.fn>;
+    createPatient: ReturnType<typeof vi.fn>;
+    updatePatient: ReturnType<typeof vi.fn>;
     deletePatient: ReturnType<typeof vi.fn>;
   };
   let reportsApi: { exportPatients: ReturnType<typeof vi.fn> };
@@ -35,6 +37,8 @@ describe('Patients', () => {
           },
         ]),
       ),
+      createPatient: vi.fn(() => of({ data: { id: 2 } })),
+      updatePatient: vi.fn(() => of({ data: { id: 1 } })),
       deletePatient: vi.fn(() => of({ message: 'ok' })),
     };
 
@@ -118,6 +122,33 @@ describe('Patients', () => {
       has_debt: '',
     });
     expect(fileDownload.download).toHaveBeenCalledWith(expect.any(Blob), 'pacijenti.csv');
+  });
+
+  it('forma pacijenta šalje datum rođenja kao ISO datum', () => {
+    const testComponent = component as unknown as {
+      patientForm: {
+        patchValue(value: unknown): void;
+      };
+      submit(): void;
+    };
+
+    testComponent.patientForm.patchValue({
+      first_name: 'Petar',
+      last_name: 'Petrović',
+      address: 'Adresa 2',
+      email: '',
+      phone: '',
+      date_of_birth: '13.05.2026.',
+      primary_dentist_id: '',
+    });
+
+    testComponent.submit();
+
+    expect(patientsApi.createPatient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        date_of_birth: '2026-05-13',
+      }),
+    );
   });
 
   it('prikazuje jasnu poruku kada PDF export nije dostupan', () => {

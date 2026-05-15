@@ -76,15 +76,9 @@
     }
 
     <form class="report-form" [formGroup]="reportForm">
-      <label>
-        Od datuma
-        <input type="date" formControlName="date_from" />
-      </label>
+      <app-serbian-date-picker label="Od datuma" formControlName="date_from" />
 
-      <label>
-        Do datuma
-        <input type="date" formControlName="date_to" />
-      </label>
+      <app-serbian-date-picker label="Do datuma" formControlName="date_to" />
 
       <label>
         Stomatolog za termine
