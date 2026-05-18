@@ -16,7 +16,7 @@ const user: AuthUser = {
 };
 
 describe('AuthStore', () => {
-  let store: AuthStore;
+  let store: InstanceType<typeof AuthStore>;
   let httpMock: HttpTestingController;
 
   beforeEach(() => {
@@ -72,7 +72,7 @@ describe('AuthStore', () => {
     initStore();
 
     let currentUser: AuthUser | null = null;
-    store.checkAuth().subscribe((response) => {
+    store.checkAuth().subscribe((response: AuthUser | null) => {
       currentUser = response;
     });
 

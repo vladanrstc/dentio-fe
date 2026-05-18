@@ -1,4 +1,5 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, inject } from '@angular/core';
+import { patchState, signalStore, withComputed, withHooks, withMethods, withState } from '@ngrx/signals';
 import { Observable, catchError, finalize, map, of, tap } from 'rxjs';
 
 import { AuthUser } from '../models/api.models';
@@ -7,128 +8,153 @@ import { AuthApi } from '../services/auth-api.service';
 const TOKEN_KEY = 'dentio_token';
 const USER_KEY = 'dentio_user';
 
-@Injectable({
-  providedIn: 'root',
-})
-export class AuthStore {
-  private readonly authApi = inject(AuthApi);
-  private readonly tokenState = signal<string | null>(null);
-  private readonly userState = signal<AuthUser | null>(null);
-  private readonly loadingState = signal(false);
+type AuthState = {
+  token: string | null;
+  user: AuthUser | null;
+  loading: boolean;
+};
 
-  readonly token = this.tokenState.asReadonly();
-  readonly user = this.userState.asReadonly();
-  readonly loading = this.loadingState.asReadonly();
+const initialState: AuthState = {
+  token: null,
+  user: null,
+  loading: false,
+};
 
-  readonly isAuthenticated = computed(() => !!this.tokenState());
-  readonly hasUser = computed(() => !!this.userState());
-  readonly role = computed(() => this.userState()?.role ?? null);
-  readonly isPlatformAdmin = computed(() => this.role() === 'platform_admin');
-  readonly isCompanyAdmin = computed(() => this.role() === 'company_admin');
-  readonly isDentist = computed(() => this.role() === 'dentist');
-  readonly isNurse = computed(() => this.role() === 'nurse');
-  readonly isCompanyUser = computed(() => this.isCompanyAdmin() || this.isDentist() || this.isNurse());
+export const AuthStore = signalStore(
+  { providedIn: 'root' },
+  withState(initialState),
+  withComputed(({ token, user }) => ({
+    isAuthenticated: computed(() => !!token()),
+    hasUser: computed(() => !!user()),
+    role: computed(() => user()?.role ?? null),
+    isPlatformAdmin: computed(() => user()?.role === 'platform_admin'),
+    isCompanyAdmin: computed(() => user()?.role === 'company_admin'),
+    isDentist: computed(() => user()?.role === 'dentist'),
+    isNurse: computed(() => user()?.role === 'nurse'),
+    isCompanyUser: computed(() => {
+      const currentRole = user()?.role;
+      return currentRole === 'company_admin' || currentRole === 'dentist' || currentRole === 'nurse';
+    }),
+  })),
+  withMethods((store, authApi = inject(AuthApi)) => {
+    function setTokenState(token: string | null): void {
+      const normalizedToken = token?.trim() || null;
 
-  constructor() {
-    this.restoreFromStorage();
-  }
+      patchState(store, { token: normalizedToken });
 
-  setToken(token: string | null): void {
-    const normalizedToken = token?.trim() || null;
-    this.tokenState.set(normalizedToken);
+      if (normalizedToken) {
+        localStorage.setItem(TOKEN_KEY, normalizedToken);
+        return;
+      }
 
-    if (normalizedToken) {
-      localStorage.setItem(TOKEN_KEY, normalizedToken);
-      return;
+      localStorage.removeItem(TOKEN_KEY);
     }
 
-    localStorage.removeItem(TOKEN_KEY);
-  }
+    function setUserState(user: AuthUser | null): void {
+      patchState(store, { user });
 
-  setUser(user: AuthUser | null): void {
-    this.userState.set(user);
+      if (user) {
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+        return;
+      }
 
-    if (user) {
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
-      return;
-    }
-
-    localStorage.removeItem(USER_KEY);
-  }
-
-  setLoading(value: boolean): void {
-    this.loadingState.set(value);
-  }
-
-  setAuth(token: string, user: AuthUser | null): void {
-    this.setToken(token);
-    this.setUser(user);
-  }
-
-  restoreFromStorage(): void {
-    this.tokenState.set(localStorage.getItem(TOKEN_KEY));
-    this.userState.set(this.readStoredUser());
-  }
-
-  checkAuth(): Observable<AuthUser | null> {
-    if (!this.tokenState()) {
-      this.clearAuth();
-      return of(null);
-    }
-
-    this.setLoading(true);
-
-    return this.authApi.me().pipe(
-      tap((user) => {
-        this.setUser(user);
-      }),
-      map((user) => user),
-      catchError(() => {
-        this.clearAuth();
-        return of(null);
-      }),
-      finalize(() => {
-        this.setLoading(false);
-      }),
-    );
-  }
-
-  logout(): Observable<unknown> {
-    if (!this.tokenState()) {
-      this.clearAuth();
-      return of(null);
-    }
-
-    this.setLoading(true);
-
-    return this.authApi.logout().pipe(
-      catchError(() => of(null)),
-      finalize(() => {
-        this.clearAuth();
-        this.setLoading(false);
-      }),
-    );
-  }
-
-  clearAuth(): void {
-    this.tokenState.set(null);
-    this.userState.set(null);
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-  }
-
-  private readStoredUser(): AuthUser | null {
-    const userJson = localStorage.getItem(USER_KEY);
-
-    if (!userJson) {
-      return null;
-    }
-
-    try {
-      return JSON.parse(userJson) as AuthUser;
-    } catch {
       localStorage.removeItem(USER_KEY);
-      return null;
     }
-  }
-}
+
+    function clearAuthState(): void {
+      patchState(store, { token: null, user: null });
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+    }
+
+    function readStoredUser(): AuthUser | null {
+      const userJson = localStorage.getItem(USER_KEY);
+
+      if (!userJson) {
+        return null;
+      }
+
+      try {
+        return JSON.parse(userJson) as AuthUser;
+      } catch {
+        localStorage.removeItem(USER_KEY);
+        return null;
+      }
+    }
+
+    return {
+      setToken(token: string | null): void {
+        setTokenState(token);
+      },
+
+      setUser(user: AuthUser | null): void {
+        setUserState(user);
+      },
+
+      setLoading(value: boolean): void {
+        patchState(store, { loading: value });
+      },
+
+      setAuth(token: string, user: AuthUser | null): void {
+        setTokenState(token);
+        setUserState(user);
+      },
+
+      restoreFromStorage(): void {
+        patchState(store, {
+          token: localStorage.getItem(TOKEN_KEY),
+          user: readStoredUser(),
+        });
+      },
+
+      checkAuth(): Observable<AuthUser | null> {
+        if (!store.token()) {
+          clearAuthState();
+          return of(null);
+        }
+
+        patchState(store, { loading: true });
+
+        return authApi.me().pipe(
+          tap((user) => {
+            setUserState(user);
+          }),
+          map((user) => user),
+          catchError(() => {
+            clearAuthState();
+            return of(null);
+          }),
+          finalize(() => {
+            patchState(store, { loading: false });
+          }),
+        );
+      },
+
+      logout(): Observable<unknown> {
+        if (!store.token()) {
+          clearAuthState();
+          return of(null);
+        }
+
+        patchState(store, { loading: true });
+
+        return authApi.logout().pipe(
+          catchError(() => of(null)),
+          finalize(() => {
+            clearAuthState();
+            patchState(store, { loading: false });
+          }),
+        );
+      },
+
+      clearAuth(): void {
+        clearAuthState();
+      },
+    };
+  }),
+  withHooks({
+    onInit(store) {
+      store.restoreFromStorage();
+    },
+  }),
+);

@@ -14,7 +14,6 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([authInterceptor])),
     provideAppInitializer(() => {
       const authStore = inject(AuthStore);
-      authStore.restoreFromStorage();
 
       if (!authStore.token()) {
         return;
