@@ -11,6 +11,8 @@ export type LoginResponse = {
   user: AuthUser;
 };
 
+export type MeResponse = AuthUser | { data: AuthUser | { user: AuthUser } } | { user: AuthUser };
+
 export type DashboardData = {
   patients_total?: number;
   total_patients?: number;
