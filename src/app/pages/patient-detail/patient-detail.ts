@@ -17,6 +17,8 @@ import { statusLabel } from '../../core/utils/role-label';
 import { SerbianDatePicker } from '../../shared/components/serbian-date-picker/serbian-date-picker';
 
 type FormName = 'appointment' | 'intervention' | 'task' | 'status' | 'completeTask';
+type PatientDetailModal = 'appointment' | 'intervention' | 'task' | 'status';
+const APPOINTMENT_LABEL_MAX_LENGTH = 60;
 
 @Component({
   selector: 'app-patient-detail',
@@ -46,6 +48,8 @@ export class PatientDetail {
   protected readonly taskSubmitting = signal(false);
   protected readonly statusSubmitting = signal(false);
   protected readonly completingTaskId = signal<number | null>(null);
+  protected readonly activeModal = signal<PatientDetailModal | null>(null);
+  protected readonly selectedAppointment = signal<Appointment | null>(null);
 
   protected readonly statusOptions = [
     { value: 'active', label: 'Aktivan' },
@@ -102,8 +106,7 @@ export class PatientDetail {
   });
 
   protected readonly appointments = computed(() => {
-    const patient = this.patient();
-    return patient?.appointments ?? patient?.upcoming_appointments ?? [];
+    return this.patient()?.appointments ?? [];
   });
 
   protected readonly activeItems = computed(() => {
@@ -125,7 +128,12 @@ export class PatientDetail {
   }
 
   protected appointmentTitle(appointment: Appointment): string {
-    return appointment.type || appointment.notes || appointment.note || appointment.patient_name || 'Termin';
+    return this.truncateLabel(this.appointmentFullTitle(appointment), APPOINTMENT_LABEL_MAX_LENGTH);
+  }
+
+  protected appointmentFullTitle(appointment: Appointment): string {
+    const typeLabel = this.appointmentTypeOptions.find((type) => type.value === appointment.type)?.label;
+    return typeLabel || appointment.type || appointment.notes || appointment.note || appointment.patient_name || 'Termin';
   }
 
   protected appointmentTime(appointment: Appointment): string {
@@ -152,6 +160,14 @@ export class PatientDetail {
 
   protected activeItemDueDate(item: ActiveItem): string {
     return this.formatDate(item.due_date ?? item.due_at);
+  }
+
+  protected appointmentStaff(appointment: Appointment): StaffMember | string | null | undefined {
+    return appointment.assigned_to ?? appointment.assigned_user;
+  }
+
+  protected activeItemStaff(item: ActiveItem): StaffMember | string | null | undefined {
+    return item.assigned_to ?? item.assigned_to_user;
   }
 
   protected dentistName(patient: Patient): string {
@@ -183,6 +199,39 @@ export class PatientDetail {
     return !!field && field.invalid && (field.dirty || field.touched);
   }
 
+  protected openModal(modal: PatientDetailModal): void {
+    this.clearMessages();
+
+    if (modal === 'intervention') {
+      this.openInterventionModal();
+      return;
+    }
+
+    this.activeModal.set(modal);
+  }
+
+  protected closeModal(): void {
+    if (
+      this.appointmentSubmitting() ||
+      this.interventionSubmitting() ||
+      this.taskSubmitting() ||
+      this.statusSubmitting()
+    ) {
+      return;
+    }
+
+    this.resetModalForms();
+    this.activeModal.set(null);
+  }
+
+  protected openAppointmentDetails(appointment: Appointment): void {
+    this.selectedAppointment.set(appointment);
+  }
+
+  protected closeAppointmentDetails(): void {
+    this.selectedAppointment.set(null);
+  }
+
   protected submitAppointment(): void {
     this.clearMessages();
 
@@ -209,6 +258,7 @@ export class PatientDetail {
           this.success.set('Termin je sačuvan.');
           this.appointmentSubmitting.set(false);
           this.appointmentForm.reset();
+          this.activeModal.set(null);
           this.loadPatient(false);
         },
         error: (error: HttpErrorResponse) => {
@@ -227,6 +277,13 @@ export class PatientDetail {
     }
 
     const value = this.interventionForm.getRawValue();
+    const appointmentId = this.toNumberOrNull(value.appointment_id);
+
+    if (appointmentId && !this.appointments().some((appointment) => appointment.id === appointmentId)) {
+      this.formError.set('Izabrani termin više nije dostupan. Otvorite formu ponovo i izaberite drugi termin.');
+      return;
+    }
+
     this.interventionSubmitting.set(true);
 
     this.patientsApi
@@ -235,7 +292,7 @@ export class PatientDetail {
         description: this.emptyToNull(value.description),
         next_step: this.emptyToNull(value.next_step),
         intervention_date: toApiDate(value.intervention_date),
-        appointment_id: this.toNumberOrNull(value.appointment_id),
+        appointment_id: appointmentId,
         performed_by_user_id: this.toNumberOrNull(value.performed_by_user_id),
         assigned_to_user_id: this.toNumberOrNull(value.assigned_to_user_id),
         task_due_date: this.emptyToNull(toApiDate(value.task_due_date)),
@@ -249,6 +306,7 @@ export class PatientDetail {
           this.success.set('Intervencija je sačuvana.');
           this.interventionSubmitting.set(false);
           this.interventionForm.reset({ total_cost: 0, paid_amount: 0 });
+          this.activeModal.set(null);
           this.loadPatient(false);
         },
         error: (error: HttpErrorResponse) => {
@@ -280,6 +338,7 @@ export class PatientDetail {
           this.success.set('Zadatak je sačuvan.');
           this.taskSubmitting.set(false);
           this.taskForm.reset();
+          this.activeModal.set(null);
           this.loadPatient(false);
         },
         error: (error: HttpErrorResponse) => {
@@ -309,6 +368,7 @@ export class PatientDetail {
         next: () => {
           this.success.set('Stanje pacijenta je sačuvano.');
           this.statusSubmitting.set(false);
+          this.activeModal.set(null);
           this.loadPatient(false);
         },
         error: (error: HttpErrorResponse) => {
@@ -350,17 +410,36 @@ export class PatientDetail {
 
     this.patientsApi.getPatient(this.patientId).subscribe({
       next: (patient) => {
-        this.patient.set(patient);
-        this.statusForm.patchValue({
-          manual_status: patient.manual_status ?? 'active',
-          manual_status_reason: patient.manual_status_reason ?? '',
-        });
+        this.setPatient(patient);
         this.loading.set(false);
       },
       error: () => {
         this.error.set('Podaci o pacijentu trenutno nisu dostupni.');
         this.loading.set(false);
       },
+    });
+  }
+
+  private openInterventionModal(): void {
+    this.interventionForm.patchValue({ appointment_id: '' });
+
+    this.patientsApi.getPatient(this.patientId).subscribe({
+      next: (patient) => {
+        this.setPatient(patient);
+        this.activeModal.set('intervention');
+      },
+      error: () => {
+        this.formError.set('Termini trenutno nisu dostupni.');
+        this.activeModal.set('intervention');
+      },
+    });
+  }
+
+  private setPatient(patient: Patient): void {
+    this.patient.set(patient);
+    this.statusForm.patchValue({
+      manual_status: patient.manual_status ?? 'active',
+      manual_status_reason: patient.manual_status_reason ?? '',
     });
   }
 
@@ -378,6 +457,19 @@ export class PatientDetail {
   private clearMessages(): void {
     this.success.set('');
     this.formError.set('');
+    this.validationErrors.set([]);
+  }
+
+  private resetModalForms(): void {
+    this.appointmentForm.reset();
+    this.interventionForm.reset({ total_cost: 0, paid_amount: 0 });
+    this.taskForm.reset();
+
+    const patient = this.patient();
+    this.statusForm.reset({
+      manual_status: patient?.manual_status ?? 'active',
+      manual_status_reason: patient?.manual_status_reason ?? '',
+    });
     this.validationErrors.set([]);
   }
 
@@ -407,5 +499,9 @@ export class PatientDetail {
     }
 
     return Number(value);
+  }
+
+  private truncateLabel(value: string, maxLength: number): string {
+    return value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
   }
 }

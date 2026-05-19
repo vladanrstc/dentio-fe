@@ -38,6 +38,7 @@ export class Patients {
   protected readonly exportingPatients = signal(false);
   protected readonly validationErrors = signal<string[]>([]);
   protected readonly editingPatient = signal<Patient | null>(null);
+  protected readonly patientModalOpen = signal(false);
   protected readonly formatMoney = formatMoney;
 
   protected readonly searchControl = this.formBuilder.nonNullable.control('');
@@ -102,6 +103,29 @@ export class Patients {
     });
   }
 
+  protected openCreateModal(): void {
+    this.editingPatient.set(null);
+    this.validationErrors.set([]);
+    this.patientForm.reset({
+      first_name: '',
+      last_name: '',
+      address: '',
+      email: '',
+      phone: '',
+      date_of_birth: '',
+      primary_dentist_id: '',
+    });
+    this.patientModalOpen.set(true);
+  }
+
+  protected closePatientModal(): void {
+    if (this.saving()) {
+      return;
+    }
+
+    this.cancelEdit();
+  }
+
   protected deletePatient(patient: Patient): void {
     const confirmed = confirm(
       `Da li ste sigurni da želite da obrišete pacijenta ${this.fullName(patient)}?`,
@@ -161,6 +185,7 @@ export class Patients {
     this.success.set('');
     this.error.set('');
     this.validationErrors.set([]);
+    this.patientModalOpen.set(true);
 
     this.patientForm.patchValue({
       first_name: patient.first_name ?? '',
@@ -174,6 +199,7 @@ export class Patients {
   }
 
   protected cancelEdit(): void {
+    this.patientModalOpen.set(false);
     this.editingPatient.set(null);
     this.validationErrors.set([]);
     this.patientForm.reset({
