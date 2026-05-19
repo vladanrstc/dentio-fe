@@ -4,6 +4,7 @@
     <h1>Pacijenti</h1>
     <p>Pretraga, unos i izmena pacijenata.</p>
   </div>
+  <button type="button" (click)="openCreateModal()">Dodaj pacijenta</button>
 </section>
 
 @if (success()) {
@@ -23,76 +24,87 @@
   </div>
 }
 
-<section class="panel patient-form" [class.editing]="editingPatient()">
-  <div class="panel-title">
-    <div>
-      <h2>{{ editingPatient() ? 'Izmena pacijenta' : 'Novi pacijent' }}</h2>
-      <p>{{ editingPatient() ? 'U toku je izmena postojećeg kartona.' : 'Unesite osnovne podatke za novi karton.' }}</p>
-    </div>
-    @if (editingPatient()) {
-      <span class="edit-badge">Režim izmene</span>
-    }
-  </div>
-
-  <form [formGroup]="patientForm" (ngSubmit)="submit()">
-    <div class="form-grid">
-      <label>
-        Ime
-        <input type="text" formControlName="first_name" />
-        @if (fieldInvalid('first_name')) {
-          <span>Ime je obavezno.</span>
-        }
-      </label>
-
-      <label>
-        Prezime
-        <input type="text" formControlName="last_name" />
-        @if (fieldInvalid('last_name')) {
-          <span>Prezime je obavezno.</span>
-        }
-      </label>
-
-      <label>
-        Adresa
-        <input type="text" formControlName="address" />
-        @if (fieldInvalid('address')) {
-          <span>Adresa je obavezna.</span>
-        }
-      </label>
-
-      <label>
-        Email
-        <input type="email" formControlName="email" />
-      </label>
-
-      <label>
-        Telefon
-        <input type="text" formControlName="phone" />
-      </label>
-
-      <app-serbian-date-picker label="Datum rođenja" formControlName="date_of_birth" />
-
-      <label>
-        Primarni stomatolog
-        <select formControlName="primary_dentist_id">
-          <option value="">Nije izabran</option>
-          @for (dentist of staff(); track dentist.id) {
-            <option [value]="dentist.id">{{ dentist.name }}</option>
+@if (patientModalOpen()) {
+  <section class="modal-backdrop" aria-label="Zatvori modal" (click)="closePatientModal()">
+    <div
+      class="panel modal-card patient-form"
+      [class.editing]="editingPatient()"
+      role="dialog"
+      aria-modal="true"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="panel-title">
+        <div>
+          <h2>{{ editingPatient() ? 'Izmena pacijenta' : 'Novi pacijent' }}</h2>
+          <p>{{ editingPatient() ? 'U toku je izmena postojećeg kartona.' : 'Unesite osnovne podatke za novi karton.' }}</p>
+        </div>
+        <div class="modal-header-actions">
+          @if (editingPatient()) {
+            <span class="edit-badge">Režim izmene</span>
           }
-        </select>
-      </label>
-    </div>
+          <button type="button" class="secondary icon-button" aria-label="Zatvori" (click)="closePatientModal()" [disabled]="saving()">X</button>
+        </div>
+      </div>
 
-    <div class="form-actions">
-      <button type="submit" [disabled]="saving()">
-        {{ saving() ? 'Čuvanje...' : editingPatient() ? 'Sačuvaj izmene' : 'Dodaj pacijenta' }}
-      </button>
-      @if (editingPatient()) {
-        <button type="button" class="secondary" (click)="cancelEdit()" [disabled]="saving()">Odustani</button>
-      }
+      <form [formGroup]="patientForm" (ngSubmit)="submit()">
+        <div class="form-grid">
+          <label>
+            Ime
+            <input type="text" formControlName="first_name" />
+            @if (fieldInvalid('first_name')) {
+              <span>Ime je obavezno.</span>
+            }
+          </label>
+
+          <label>
+            Prezime
+            <input type="text" formControlName="last_name" />
+            @if (fieldInvalid('last_name')) {
+              <span>Prezime je obavezno.</span>
+            }
+          </label>
+
+          <label>
+            Adresa
+            <input type="text" formControlName="address" />
+            @if (fieldInvalid('address')) {
+              <span>Adresa je obavezna.</span>
+            }
+          </label>
+
+          <label>
+            Email
+            <input type="email" formControlName="email" />
+          </label>
+
+          <label>
+            Telefon
+            <input type="text" formControlName="phone" />
+          </label>
+
+          <app-serbian-date-picker label="Datum rođenja" formControlName="date_of_birth" />
+
+          <label>
+            Primarni stomatolog
+            <select formControlName="primary_dentist_id">
+              <option value="">Nije izabran</option>
+              @for (dentist of staff(); track dentist.id) {
+                <option [value]="dentist.id">{{ dentist.name }}</option>
+              }
+            </select>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" [disabled]="saving()">
+            {{ saving() ? 'Čuvanje...' : editingPatient() ? 'Sačuvaj izmene' : 'Dodaj pacijenta' }}
+          </button>
+          <button type="button" class="secondary" (click)="closePatientModal()" [disabled]="saving()">Odustani</button>
+        </div>
+      </form>
     </div>
-  </form>
-</section>
+  </section>
+}
 
 <section class="panel">
   <div class="table-toolbar">
@@ -203,7 +215,7 @@
   } @else {
     <div class="empty-state">
       <strong>Nema pacijenata za prikaz.</strong>
-      <p>Promenite pretragu ili dodajte novog pacijenta kroz formu iznad.</p>
+      <p>Promenite pretragu ili dodajte novog pacijenta.</p>
     </div>
   }
 </section>

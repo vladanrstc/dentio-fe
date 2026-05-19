@@ -75,6 +75,19 @@ describe('Patients', () => {
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Ana Anić');
   });
 
+  it('forma za novog pacijenta je sakrivena dok modal nije otvoren', () => {
+    expect(fixture.debugElement.query(By.css('.modal-card'))).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Unesite osnovne podatke za novi karton.');
+  });
+
+  it('klik na Dodaj pacijenta otvara modal', () => {
+    openCreateModal();
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('.modal-card'))).toBeTruthy();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Novi pacijent');
+  });
+
   it('search poziva load sa unetom vrednošću', async () => {
     vi.useFakeTimers();
     const testComponent = component as unknown as {
@@ -151,6 +164,49 @@ describe('Patients', () => {
     );
   });
 
+  it('uspešno dodavanje zatvara modal i resetuje formu', () => {
+    openCreateModal();
+    const testComponent = component as unknown as {
+      patientForm: {
+        patchValue(value: unknown): void;
+        value: { first_name?: string | null };
+      };
+      submit(): void;
+    };
+
+    testComponent.patientForm.patchValue({
+      first_name: 'Petar',
+      last_name: 'Petrović',
+      address: 'Adresa 2',
+      email: '',
+      phone: '',
+      date_of_birth: '',
+      primary_dentist_id: '',
+    });
+
+    testComponent.submit();
+    fixture.detectChanges();
+
+    expect(patientsApi.createPatient).toHaveBeenCalled();
+    expect(fixture.debugElement.query(By.css('.modal-card'))).toBeNull();
+    expect(testComponent.patientForm.value.first_name).toBe('');
+  });
+
+  it('cancel zatvara modal bez submit-a', () => {
+    openCreateModal();
+    fixture.detectChanges();
+
+    const cancelButton = fixture.debugElement
+      .queryAll(By.css('button'))
+      .find((button) => button.nativeElement.textContent.includes('Odustani'));
+
+    cancelButton?.nativeElement.click();
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('.modal-card'))).toBeNull();
+    expect(patientsApi.createPatient).not.toHaveBeenCalled();
+  });
+
   it('prikazuje jasnu poruku kada PDF export nije dostupan', () => {
     reportsApi.exportPatients.mockReturnValue(throwError(() => ({ status: 501 })));
 
@@ -189,4 +245,12 @@ describe('Patients', () => {
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Excel export trenutno nije dostupan.');
   });
+
+  function openCreateModal(): void {
+    const addButton = fixture.debugElement
+      .queryAll(By.css('button'))
+      .find((button) => button.nativeElement.textContent.trim() === 'Dodaj pacijenta');
+
+    addButton?.nativeElement.click();
+  }
 });
