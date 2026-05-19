@@ -3,8 +3,8 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { CompanyInvite } from '../../core/models/api.models';
-import { Auth } from '../../core/services/auth';
 import { TeamApi } from '../../core/services/team-api.service';
+import { AuthStore } from '../../core/state/auth.store';
 import { formatDate } from '../../core/utils/formatters';
 import { extractValidationErrors, unwrapCollection } from '../../core/utils/http-helpers';
 import { roleLabel, statusLabel } from '../../core/utils/role-label';
@@ -18,7 +18,7 @@ import { roleLabel, statusLabel } from '../../core/utils/role-label';
 })
 export class TeamInvites {
   private readonly teamApi = inject(TeamApi);
-  private readonly auth = inject(Auth);
+  private readonly authStore = inject(AuthStore);
   private readonly formBuilder = inject(FormBuilder);
 
   protected readonly invites = signal<CompanyInvite[]>([]);
@@ -27,7 +27,7 @@ export class TeamInvites {
   protected readonly error = signal('');
   protected readonly success = signal('');
   protected readonly validationErrors = signal<string[]>([]);
-  protected readonly canInvite = this.auth.currentUser()?.role === 'company_admin';
+  protected readonly canInvite = this.authStore.isCompanyAdmin;
   protected readonly formatRole = roleLabel;
   protected readonly formatStatus = statusLabel;
   protected readonly formatDate = formatDate;

@@ -3,9 +3,12 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 
+import { AuthStore } from '../state/auth.store';
+
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
-  const token = localStorage.getItem('dentio_token');
+  const authStore = inject(AuthStore);
+  const token = authStore.token();
 
   const headers: Record<string, string> = {
     Accept: 'application/json',
@@ -22,8 +25,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   ).pipe(
     catchError((error: unknown) => {
       if (error instanceof HttpErrorResponse && error.status === 401) {
-        localStorage.removeItem('dentio_token');
-        localStorage.removeItem('dentio_user');
+        authStore.clearAuth();
         router.navigate(['/login']);
       }
 

@@ -12,6 +12,7 @@ import { AdminDashboard } from './pages/admin-dashboard/admin-dashboard';
 import { AdminCompanies } from './pages/admin-companies/admin-companies';
 import { AdminCompanyDetail } from './pages/admin-company-detail/admin-company-detail';
 import { AdminInviteOwner } from './pages/admin-invite-owner/admin-invite-owner';
+import { ReportSettings } from './pages/report-settings/report-settings';
 import { adminGuard } from './core/guards/admin.guard';
 import { companyGuard } from './core/guards/company.guard';
 
@@ -44,6 +45,11 @@ export const routes: Routes = [
       {
         path: 'invite-owner',
         component: AdminInviteOwner,
+      },
+      {
+        path: 'reports/settings',
+        component: ReportSettings,
+        data: { reportMode: 'admin' },
       },
       {
         path: 'invites',
@@ -81,6 +87,11 @@ export const routes: Routes = [
       {
         path: 'team/invites',
         component: TeamInvites,
+      },
+      {
+        path: 'reports/settings',
+        component: ReportSettings,
+        data: { reportMode: 'company' },
       },
       {
         path: '',

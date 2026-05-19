@@ -11,6 +11,8 @@ export type LoginResponse = {
   user: AuthUser;
 };
 
+export type MeResponse = AuthUser | { data: AuthUser | { user: AuthUser } } | { user: AuthUser };
+
 export type DashboardData = {
   patients_total?: number;
   total_patients?: number;
@@ -46,6 +48,7 @@ export type Appointment = {
   type?: string | null;
   note?: string;
   notes?: string | null;
+  assigned_to?: StaffMember | string | null;
   assigned_user?: StaffMember | string | null;
   assigned_user_id?: number | null;
 };
@@ -74,6 +77,7 @@ export type ActiveItem = {
   description?: string | null;
   due_date?: string | null;
   due_at?: string | null;
+  assigned_to?: StaffMember | string | null;
   assigned_to_user?: StaffMember | string | null;
   status?: string | null;
 };
@@ -276,3 +280,24 @@ export type CollectionResponse<T> = T[] | { data: T[] } | { data: { data: T[] } 
 export type ItemResponse<T> = T | { data: T };
 export type DashboardResponse = DashboardData | { data: DashboardData };
 export type AdminDashboardResponse = AdminDashboardData | { data: AdminDashboardData };
+
+export type ReportFormat = 'csv' | 'xlsx' | 'pdf';
+
+export type ReportParams = Record<string, string | number | boolean | null | undefined>;
+
+export type ReportFrequency = 'off' | 'daily' | 'weekly' | 'monthly';
+
+export type ReportSettingsItem = {
+  report: 'patients' | 'appointments' | 'interventions_financial' | 'companies';
+  frequency: ReportFrequency;
+  format: ReportFormat;
+};
+
+export type ReportSubscription = ReportSettingsItem & {
+  report_key?: ReportSettingsItem['report'];
+};
+
+export type ReportSubscriptionPayload = {
+  frequency: ReportFrequency;
+  format: ReportFormat;
+};

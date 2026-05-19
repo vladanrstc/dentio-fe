@@ -60,4 +60,82 @@
       </div>
     }
   </section>
+
+  <section class="panel">
+    <div class="panel-title">
+      <div>
+        <h2>Izveštaji</h2>
+        <p>Preuzmite podatke za termine, intervencije i finansije.</p>
+      </div>
+    </div>
+
+    @if (reportError()) {
+      <div class="state-card error report-error">
+        <strong>{{ reportError() }}</strong>
+      </div>
+    }
+
+    <form class="report-form" [formGroup]="reportForm">
+      <app-serbian-date-picker label="Od datuma" formControlName="date_from" />
+
+      <app-serbian-date-picker label="Do datuma" formControlName="date_to" />
+
+      <label>
+        Stomatolog za termine
+        <select formControlName="assigned_user_id">
+          <option value="">Svi članovi tima</option>
+          @for (member of staff(); track member.id) {
+            <option [value]="member.id">{{ member.name }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        Izvršio intervenciju
+        <select formControlName="performed_by_user_id">
+          <option value="">Svi članovi tima</option>
+          @for (member of staff(); track member.id) {
+            <option [value]="member.id">{{ member.name }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        Tip termina
+        <input type="text" formControlName="type" placeholder="Svi tipovi" />
+      </label>
+
+      <label>
+        Status termina
+        <input type="text" formControlName="status" placeholder="Svi statusi" />
+      </label>
+
+      <label>
+        Finansije
+        <select formControlName="has_outstanding">
+          <option value="">Svi zapisi</option>
+          <option value="1">Ima dugovanje</option>
+          <option value="0">Bez dugovanja</option>
+        </select>
+      </label>
+
+      <label>
+        Format
+        <select formControlName="format">
+          <option value="csv">CSV</option>
+          <option value="xlsx">Excel</option>
+          <option value="pdf">PDF</option>
+        </select>
+      </label>
+    </form>
+
+    <div class="report-actions">
+      <button type="button" (click)="exportAppointments()" [disabled]="exportingAppointments()">
+        {{ exportingAppointments() ? 'Export u toku...' : 'Export termina' }}
+      </button>
+      <button type="button" class="secondary" (click)="exportInterventionsFinancial()" [disabled]="exportingInterventions()">
+        {{ exportingInterventions() ? 'Export u toku...' : 'Export intervencija i finansija' }}
+      </button>
+    </div>
+  </section>
 }
