@@ -1,24 +1,29 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
+import { Observable, firstValueFrom, of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Auth } from '../services/auth';
+import { AuthStore } from '../state/auth.store';
 import { adminGuard } from './admin.guard';
 import { companyGuard } from './company.guard';
 
 describe('role guards', () => {
-  let auth: {
-    isLoggedIn: ReturnType<typeof vi.fn>;
+  let authStore: {
+    isAuthenticated: ReturnType<typeof vi.fn>;
+    hasUser: ReturnType<typeof vi.fn>;
     isPlatformAdmin: ReturnType<typeof vi.fn>;
     isCompanyUser: ReturnType<typeof vi.fn>;
+    checkAuth: ReturnType<typeof vi.fn>;
   };
   let router: { createUrlTree: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
-    auth = {
-      isLoggedIn: vi.fn(() => true),
+    authStore = {
+      isAuthenticated: vi.fn(() => true),
+      hasUser: vi.fn(() => true),
       isPlatformAdmin: vi.fn(() => false),
       isCompanyUser: vi.fn(() => true),
+      checkAuth: vi.fn(() => of({ id: 1 })),
     };
     router = {
       createUrlTree: vi.fn((commands: string[]) => ({ commands })),
@@ -26,30 +31,30 @@ describe('role guards', () => {
 
     TestBed.configureTestingModule({
       providers: [
-        { provide: Auth, useValue: auth },
+        { provide: AuthStore, useValue: authStore },
         { provide: Router, useValue: router },
       ],
     });
   });
 
   it('admin guard dozvoljava platform admina', () => {
-    auth.isPlatformAdmin.mockReturnValue(true);
+    authStore.isPlatformAdmin.mockReturnValue(true);
 
     const result = TestBed.runInInjectionContext(() => adminGuard({} as never, {} as never));
 
     expect(result).toBe(true);
   });
 
-  it('admin guard vraća company korisnika na dashboard', () => {
-    auth.isPlatformAdmin.mockReturnValue(false);
+  it('admin guard vraca company korisnika na dashboard', () => {
+    authStore.isPlatformAdmin.mockReturnValue(false);
 
     const result = TestBed.runInInjectionContext(() => adminGuard({} as never, {} as never));
 
     expect(result).toEqual({ commands: ['/dashboard'] });
   });
 
-  it('company guard platform admina šalje na admin dashboard', () => {
-    auth.isPlatformAdmin.mockReturnValue(true);
+  it('company guard platform admina salje na admin dashboard', () => {
+    authStore.isPlatformAdmin.mockReturnValue(true);
 
     const result = TestBed.runInInjectionContext(() => companyGuard({} as never, {} as never));
 
@@ -57,19 +62,41 @@ describe('role guards', () => {
   });
 
   it('company guard dozvoljava company korisnike', () => {
-    auth.isPlatformAdmin.mockReturnValue(false);
-    auth.isCompanyUser.mockReturnValue(true);
+    authStore.isPlatformAdmin.mockReturnValue(false);
+    authStore.isCompanyUser.mockReturnValue(true);
 
     const result = TestBed.runInInjectionContext(() => companyGuard({} as never, {} as never));
 
     expect(result).toBe(true);
   });
 
-  it('guard šalje neulogovanog korisnika na login', () => {
-    auth.isLoggedIn.mockReturnValue(false);
+  it('guard salje neulogovanog korisnika na login', () => {
+    authStore.isAuthenticated.mockReturnValue(false);
 
     const result = TestBed.runInInjectionContext(() => companyGuard({} as never, {} as never));
 
     expect(result).toEqual({ commands: ['/login'] });
+  });
+
+  it('company guard ceka /me proveru ako token postoji, ali user jos nije ucitan', async () => {
+    authStore.hasUser.mockReturnValue(false);
+    authStore.checkAuth.mockReturnValue(of({ id: 1 }));
+    authStore.isCompanyUser.mockReturnValue(true);
+
+    const result = TestBed.runInInjectionContext(() => companyGuard({} as never, {} as never));
+
+    await expect(firstValueFrom(result as Observable<unknown>)).resolves.toBe(true);
+    expect(authStore.checkAuth).toHaveBeenCalled();
+  });
+
+  it('admin guard ceka /me proveru ako token postoji, ali user jos nije ucitan', async () => {
+    authStore.hasUser.mockReturnValue(false);
+    authStore.checkAuth.mockReturnValue(of({ id: 1 }));
+    authStore.isPlatformAdmin.mockReturnValue(true);
+
+    const result = TestBed.runInInjectionContext(() => adminGuard({} as never, {} as never));
+
+    await expect(firstValueFrom(result as Observable<unknown>)).resolves.toBe(true);
+    expect(authStore.checkAuth).toHaveBeenCalled();
   });
 });

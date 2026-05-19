@@ -23,14 +23,27 @@ describe('ReportsApi', () => {
     httpMock.verify();
   });
 
-  it('kreira request za export pacijenata sa formatom i pretragom', () => {
-    service.exportPatients({ format: 'csv', search: 'ana' }).subscribe();
+  it('kreira request za export pacijenata sa svim filterima', () => {
+    service
+      .exportPatients({
+        format: 'csv',
+        search: 'ana',
+        status: 'active',
+        primary_dentist_id: 7,
+        has_open_tasks: 1,
+        has_debt: 0,
+      })
+      .subscribe();
 
     const request = httpMock.expectOne(
       (req) =>
         req.url === `${environment.apiBaseUrl}/company/reports/patients` &&
         req.params.get('format') === 'csv' &&
-        req.params.get('search') === 'ana',
+        req.params.get('search') === 'ana' &&
+        req.params.get('status') === 'active' &&
+        req.params.get('primary_dentist_id') === '7' &&
+        req.params.get('has_open_tasks') === '1' &&
+        req.params.get('has_debt') === '0',
     );
 
     expect(request.request.method).toBe('GET');
@@ -45,8 +58,9 @@ describe('ReportsApi', () => {
         format: 'csv',
         date_from: '2026-05-01',
         date_to: '2026-05-12',
-        user_id: 7,
+        assigned_user_id: 7,
         type: 'checkup',
+        status: 'scheduled',
       })
       .subscribe();
 
@@ -56,8 +70,9 @@ describe('ReportsApi', () => {
         req.params.get('format') === 'csv' &&
         req.params.get('date_from') === '2026-05-01' &&
         req.params.get('date_to') === '2026-05-12' &&
-        req.params.get('user_id') === '7' &&
-        req.params.get('type') === 'checkup',
+        req.params.get('assigned_user_id') === '7' &&
+        req.params.get('type') === 'checkup' &&
+        req.params.get('status') === 'scheduled',
     );
 
     expect(request.request.method).toBe('GET');
@@ -72,8 +87,8 @@ describe('ReportsApi', () => {
         format: 'pdf',
         date_from: '2026-05-01',
         date_to: '2026-05-12',
-        user_id: 3,
-        status: 'open',
+        performed_by_user_id: 3,
+        has_outstanding: 1,
       })
       .subscribe();
 
@@ -83,8 +98,8 @@ describe('ReportsApi', () => {
         req.params.get('format') === 'pdf' &&
         req.params.get('date_from') === '2026-05-01' &&
         req.params.get('date_to') === '2026-05-12' &&
-        req.params.get('user_id') === '3' &&
-        req.params.get('status') === 'open',
+        req.params.get('performed_by_user_id') === '3' &&
+        req.params.get('has_outstanding') === '1',
     );
 
     expect(request.request.method).toBe('GET');

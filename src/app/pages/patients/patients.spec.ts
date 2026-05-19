@@ -15,6 +15,8 @@ describe('Patients', () => {
   let patientsApi: {
     getStaff: ReturnType<typeof vi.fn>;
     getPatients: ReturnType<typeof vi.fn>;
+    createPatient: ReturnType<typeof vi.fn>;
+    updatePatient: ReturnType<typeof vi.fn>;
     deletePatient: ReturnType<typeof vi.fn>;
   };
   let reportsApi: { exportPatients: ReturnType<typeof vi.fn> };
@@ -35,6 +37,8 @@ describe('Patients', () => {
           },
         ]),
       ),
+      createPatient: vi.fn(() => of({ data: { id: 2 } })),
+      updatePatient: vi.fn(() => of({ data: { id: 1 } })),
       deletePatient: vi.fn(() => of({ message: 'ok' })),
     };
 
@@ -69,6 +73,19 @@ describe('Patients', () => {
   it('učitava i prikazuje pacijente', () => {
     expect(patientsApi.getPatients).toHaveBeenCalledWith('');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Ana Anić');
+  });
+
+  it('forma za novog pacijenta je sakrivena dok modal nije otvoren', () => {
+    expect(fixture.debugElement.query(By.css('.modal-card'))).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Unesite osnovne podatke za novi karton.');
+  });
+
+  it('klik na Dodaj pacijenta otvara modal', () => {
+    openCreateModal();
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('.modal-card'))).toBeTruthy();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Novi pacijent');
   });
 
   it('search poziva load sa unetom vrednošću', async () => {
@@ -112,8 +129,82 @@ describe('Patients', () => {
     expect(reportsApi.exportPatients).toHaveBeenCalledWith({
       format: 'csv',
       search: '',
+      status: '',
+      primary_dentist_id: '',
+      has_open_tasks: '',
+      has_debt: '',
     });
     expect(fileDownload.download).toHaveBeenCalledWith(expect.any(Blob), 'pacijenti.csv');
+  });
+
+  it('forma pacijenta šalje datum rođenja kao ISO datum', () => {
+    const testComponent = component as unknown as {
+      patientForm: {
+        patchValue(value: unknown): void;
+      };
+      submit(): void;
+    };
+
+    testComponent.patientForm.patchValue({
+      first_name: 'Petar',
+      last_name: 'Petrović',
+      address: 'Adresa 2',
+      email: '',
+      phone: '',
+      date_of_birth: '13.05.2026.',
+      primary_dentist_id: '',
+    });
+
+    testComponent.submit();
+
+    expect(patientsApi.createPatient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        date_of_birth: '2026-05-13',
+      }),
+    );
+  });
+
+  it('uspešno dodavanje zatvara modal i resetuje formu', () => {
+    openCreateModal();
+    const testComponent = component as unknown as {
+      patientForm: {
+        patchValue(value: unknown): void;
+        value: { first_name?: string | null };
+      };
+      submit(): void;
+    };
+
+    testComponent.patientForm.patchValue({
+      first_name: 'Petar',
+      last_name: 'Petrović',
+      address: 'Adresa 2',
+      email: '',
+      phone: '',
+      date_of_birth: '',
+      primary_dentist_id: '',
+    });
+
+    testComponent.submit();
+    fixture.detectChanges();
+
+    expect(patientsApi.createPatient).toHaveBeenCalled();
+    expect(fixture.debugElement.query(By.css('.modal-card'))).toBeNull();
+    expect(testComponent.patientForm.value.first_name).toBe('');
+  });
+
+  it('cancel zatvara modal bez submit-a', () => {
+    openCreateModal();
+    fixture.detectChanges();
+
+    const cancelButton = fixture.debugElement
+      .queryAll(By.css('button'))
+      .find((button) => button.nativeElement.textContent.includes('Odustani'));
+
+    cancelButton?.nativeElement.click();
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('.modal-card'))).toBeNull();
+    expect(patientsApi.createPatient).not.toHaveBeenCalled();
   });
 
   it('prikazuje jasnu poruku kada PDF export nije dostupan', () => {
@@ -154,4 +245,12 @@ describe('Patients', () => {
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Excel export trenutno nije dostupan.');
   });
+
+  function openCreateModal(): void {
+    const addButton = fixture.debugElement
+      .queryAll(By.css('button'))
+      .find((button) => button.nativeElement.textContent.trim() === 'Dodaj pacijenta');
+
+    addButton?.nativeElement.click();
+  }
 });

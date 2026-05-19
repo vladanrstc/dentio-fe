@@ -1,17 +1,30 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { map } from 'rxjs';
 
-import { Auth } from '../services/auth';
+import { AuthStore } from '../state/auth.store';
 
 export const adminGuard: CanActivateFn = () => {
-  const auth = inject(Auth);
+  const authStore = inject(AuthStore);
   const router = inject(Router);
 
-  if (!auth.isLoggedIn()) {
+  if (!authStore.isAuthenticated()) {
     return router.createUrlTree(['/login']);
   }
 
-  if (auth.isPlatformAdmin()) {
+  if (!authStore.hasUser()) {
+    return authStore.checkAuth().pipe(
+      map(() => {
+        if (!authStore.isAuthenticated()) {
+          return router.createUrlTree(['/login']);
+        }
+
+        return authStore.isPlatformAdmin() ? true : router.createUrlTree(['/dashboard']);
+      }),
+    );
+  }
+
+  if (authStore.isPlatformAdmin()) {
     return true;
   }
 

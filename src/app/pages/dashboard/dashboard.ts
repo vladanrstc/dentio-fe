@@ -5,13 +5,14 @@ import { Appointment, DashboardData, ReportFormat, StaffMember } from '../../cor
 import { FileDownloadService } from '../../core/services/file-download.service';
 import { PatientsApi } from '../../core/services/patients-api.service';
 import { ReportsApi } from '../../core/services/reports-api.service';
-import { formatDate, formatMoney } from '../../core/utils/formatters';
+import { formatDate, formatMoney, toApiDate } from '../../core/utils/formatters';
 import { unwrapCollection } from '../../core/utils/http-helpers';
 import { reportExportErrorMessage, reportFilename } from '../../core/utils/report-utils';
+import { SerbianDatePicker } from '../../shared/components/serbian-date-picker/serbian-date-picker';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, SerbianDatePicker],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -33,9 +34,11 @@ export class Dashboard {
   protected readonly reportForm = this.formBuilder.nonNullable.group({
     date_from: [''],
     date_to: [''],
-    user_id: [''],
+    assigned_user_id: [''],
+    performed_by_user_id: [''],
     type: [''],
     status: [''],
+    has_outstanding: [''],
     format: ['csv' as ReportFormat],
   });
 
@@ -99,6 +102,13 @@ export class Dashboard {
 
   protected exportAppointments(): void {
     this.reportError.set('');
+
+    if (this.reportForm.invalid) {
+      this.reportForm.markAllAsTouched();
+      this.reportError.set('Unesite datume u formatu dd.MM.yyyy.');
+      return;
+    }
+
     this.exportingAppointments.set(true);
 
     const value = this.reportForm.getRawValue();
@@ -106,10 +116,11 @@ export class Dashboard {
     this.reportsApi
       .exportAppointments({
         format: value.format,
-        date_from: value.date_from,
-        date_to: value.date_to,
-        user_id: value.user_id,
+        date_from: toApiDate(value.date_from),
+        date_to: toApiDate(value.date_to),
+        assigned_user_id: value.assigned_user_id,
         type: value.type,
+        status: value.status,
       })
       .subscribe({
         next: (blob) => {
@@ -127,6 +138,13 @@ export class Dashboard {
 
   protected exportInterventionsFinancial(): void {
     this.reportError.set('');
+
+    if (this.reportForm.invalid) {
+      this.reportForm.markAllAsTouched();
+      this.reportError.set('Unesite datume u formatu dd.MM.yyyy.');
+      return;
+    }
+
     this.exportingInterventions.set(true);
 
     const value = this.reportForm.getRawValue();
@@ -134,10 +152,10 @@ export class Dashboard {
     this.reportsApi
       .exportInterventionsFinancial({
         format: value.format,
-        date_from: value.date_from,
-        date_to: value.date_to,
-        user_id: value.user_id,
-        status: value.status,
+        date_from: toApiDate(value.date_from),
+        date_to: toApiDate(value.date_to),
+        performed_by_user_id: value.performed_by_user_id,
+        has_outstanding: value.has_outstanding,
       })
       .subscribe({
         next: (blob) => {

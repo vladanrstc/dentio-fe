@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
@@ -16,18 +16,31 @@ export class Login {
 
   email = '';
   password = '';
-  error = '';
+  readonly error = signal('');
+  readonly submitted = signal(false);
 
   submit(): void {
-    this.error = '';
+    this.error.set('');
+    this.submitted.set(true);
+
+    if (!this.email.trim() || !this.password) {
+      this.error.set('Unesite email i lozinku.');
+      return;
+    }
 
     this.auth.login(this.email, this.password).subscribe({
       next: (response) => {
         this.router.navigate([this.auth.homePathFor(response.user)]);
       },
       error: () => {
-        this.error = 'Pogrešan email ili lozinka.';
+        this.error.set('Email ili lozinka nisu ispravni.');
       },
     });
+  }
+
+  clearError(): void {
+    if (this.error()) {
+      this.error.set('');
+    }
   }
 }

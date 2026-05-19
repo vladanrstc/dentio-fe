@@ -21,7 +21,7 @@
   </div>
 }
 
-@if (canInvite) {
+@if (canInvite()) {
   <section class="card form-card">
     <h2>Nova pozivnica</h2>
     <form [formGroup]="inviteForm" (ngSubmit)="submit()">

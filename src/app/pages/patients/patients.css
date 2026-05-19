@@ -35,9 +35,18 @@
   padding: 22px;
 }
 
-.patient-form.editing {
-  border-color: #99f6e4;
-  box-shadow: 0 0 0 4px rgba(153, 246, 228, 0.22);
+.modal-backdrop {
+  background: rgba(15, 23, 42, 0.46);
+  display: grid;
+  inset: 0;
+  padding: 24px;
+  place-items: center;
+  position: fixed;
+  z-index: 50;
+}
+
+.modal-card {
+  width: min(860px, 100%);
 }
 
 .panel-title,
@@ -203,6 +212,13 @@ button.secondary:hover,
   min-width: 110px;
 }
 
+.export-filter-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  margin-bottom: 18px;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
@@ -292,10 +308,15 @@ td strong {
   .form-grid {
     grid-template-columns: repeat(2, minmax(180px, 1fr));
   }
+
+  .export-filter-grid {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
 }
 
 @media (max-width: 700px) {
-  .form-grid {
+  .form-grid,
+  .export-filter-grid {
     grid-template-columns: 1fr;
   }
 
@@ -303,6 +324,10 @@ td strong {
   .panel-title {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .modal-backdrop {
+    padding: 14px;
   }
 
   .toolbar-actions {
