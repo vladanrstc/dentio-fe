@@ -31,7 +31,7 @@
     <div class="notice success">{{ success() }}</div>
   }
 
-  @if (formError()) {
+  @if (formError() && !activeModal()) {
     <div class="notice error">
       <strong>{{ formError() }}</strong>
       @if (validationErrors().length) {
@@ -95,6 +95,7 @@
     <article class="card">
       <div class="card-header">
         <h2>Stanje pacijenta</h2>
+        <button type="button" (click)="openModal('status')">Promena stanja</button>
       </div>
       <div class="status-block">
         <span class="status-badge">{{ statusLabel(patient.manual_status) }}</span>
@@ -105,6 +106,7 @@
     <article class="card">
       <div class="card-header">
         <h2>Aktivni zadaci</h2>
+        <button type="button" (click)="openModal('task')">Novi zadatak</button>
       </div>
       @if (activeItems().length) {
         <div class="list">
@@ -113,7 +115,7 @@
               <div>
                 <strong>{{ activeItemTitle(item) }}</strong>
                 <span>Rok: {{ activeItemDueDate(item) }} / {{ statusLabel(item.status) }}</span>
-                <span>Zadužen: {{ staffName(item.assigned_to_user) }}</span>
+                <span>Zadužen: {{ staffName(activeItemStaff(item)) }}</span>
               </div>
               <button type="button" class="compact" (click)="completeTask(item.id)" [disabled]="completingTaskId() === item.id">
                 {{ completingTaskId() === item.id ? 'Završavanje...' : 'Završi' }}
@@ -131,17 +133,18 @@
     <article class="card">
       <div class="card-header">
         <h2>Termini pacijenta</h2>
+        <button type="button" (click)="openModal('appointment')">Novi termin</button>
       </div>
       @if (appointments().length) {
         <div class="list">
           @for (appointment of appointments(); track appointment.id) {
-            <div class="list-row">
+            <button type="button" class="list-row appointment-row" (click)="openAppointmentDetails(appointment)">
               <div>
                 <strong>{{ appointmentTitle(appointment) }}</strong>
                 <span>{{ appointmentRange(appointment) }}</span>
               </div>
-              <span>{{ staffName(appointment.assigned_user) }}</span>
-            </div>
+              <span>{{ staffName(appointmentStaff(appointment)) }}</span>
+            </button>
           }
         </div>
       } @else {
@@ -154,6 +157,7 @@
     <article class="card">
       <div class="card-header">
         <h2>Intervencije pacijenta</h2>
+        <button type="button" (click)="openModal('intervention')">Nova intervencija</button>
       </div>
       @if (interventions().length) {
         <div class="list">
@@ -195,251 +199,331 @@
     </article>
   </section>
 
-  <section class="forms-grid">
-    <article class="card form-card">
-      <div class="card-header">
-        <h2>Novi termin</h2>
-        <p>Unesite vreme, tip termina i zaduzenog clana osoblja.</p>
-      </div>
-      <form [formGroup]="appointmentForm" (ngSubmit)="submitAppointment()">
-        <div class="form-grid">
-          <label>
-            Početak
-            <app-serbian-date-picker
-              mode="datetime"
-              placeholder="dd.MM.yyyy. HH:mm"
-              errorText="Unesite datum i vreme u formatu dd.MM.yyyy. HH:mm"
-              formControlName="starts_at"
-            />
-            @if (fieldInvalid('appointment', 'starts_at')) {
-              <span>Početak termina je obavezan.</span>
-            }
-          </label>
-          <label>
-            Kraj
-            <app-serbian-date-picker
-              mode="datetime"
-              placeholder="dd.MM.yyyy. HH:mm"
-              errorText="Unesite datum i vreme u formatu dd.MM.yyyy. HH:mm"
-              formControlName="ends_at"
-            />
-            @if (fieldInvalid('appointment', 'ends_at')) {
-              <span>Kraj termina je obavezan.</span>
-            }
-          </label>
-          <label>
-            Tip
-            <select formControlName="type">
-              <option value="">Izaberi tip termina</option>
-              @for (type of appointmentTypeOptions; track type.value) {
-                <option [value]="type.value">{{ type.label }}</option>
-              }
-            </select>
-            @if (fieldInvalid('appointment', 'type')) {
-              <span>Tip termina je obavezan.</span>
-            }
-          </label>
-          <label>
-            Zaduženi član osoblja
-            <select formControlName="assigned_user_id">
-              <option value="">Izaberi osobu</option>
-              @for (member of staff(); track member.id) {
-                <option [value]="member.id">{{ member.name }}</option>
-              }
-            </select>
-            @if (fieldInvalid('appointment', 'assigned_user_id')) {
-              <span>Zaduženi član osoblja je obavezan.</span>
-            }
-          </label>
-          <label>
-            Podsetnik za osoblje
-            <app-serbian-date-picker
-              mode="datetime"
-              placeholder="dd.MM.yyyy. HH:mm"
-              errorText="Unesite datum i vreme u formatu dd.MM.yyyy. HH:mm"
-              formControlName="reminder_staff_at"
-            />
-          </label>
-          <label>
-            Podsetnik za pacijenta
-            <app-serbian-date-picker
-              mode="datetime"
-              placeholder="dd.MM.yyyy. HH:mm"
-              errorText="Unesite datum i vreme u formatu dd.MM.yyyy. HH:mm"
-              formControlName="reminder_patient_at"
-            />
-          </label>
-          <label class="full">
-            Napomena
-            <textarea formControlName="notes" rows="3"></textarea>
-          </label>
+  @if (activeModal() === 'appointment') {
+    <section class="modal-backdrop" aria-label="Zatvori modal" (click)="closeModal()">
+      <article class="card modal-card form-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <div class="modal-title">
+          <div>
+            <h2>Novi termin</h2>
+            <p>Unesite vreme, tip termina i zaduženog člana osoblja.</p>
+          </div>
+          <button type="button" class="secondary icon-button" aria-label="Zatvori" (click)="closeModal()" [disabled]="appointmentSubmitting()">X</button>
         </div>
-        <button type="submit" [disabled]="appointmentSubmitting()">
-          {{ appointmentSubmitting() ? 'Čuvanje...' : 'Sačuvaj termin' }}
-        </button>
-      </form>
-    </article>
+        @if (formError()) {
+          <div class="notice error modal-notice">
+            <strong>{{ formError() }}</strong>
+            @if (validationErrors().length) {
+              <ul>
+                @for (message of validationErrors(); track message) {
+                  <li>{{ message }}</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+        <form [formGroup]="appointmentForm" (ngSubmit)="submitAppointment()">
+          <div class="form-grid">
+            <label>
+              Početak
+              <app-serbian-date-picker mode="datetime" placeholder="dd.MM.yyyy. HH:mm" errorText="Unesite datum i vreme u formatu dd.MM.yyyy. HH:mm" formControlName="starts_at" />
+              @if (fieldInvalid('appointment', 'starts_at')) {
+                <span>Početak termina je obavezan.</span>
+              }
+            </label>
+            <label>
+              Kraj
+              <app-serbian-date-picker mode="datetime" placeholder="dd.MM.yyyy. HH:mm" errorText="Unesite datum i vreme u formatu dd.MM.yyyy. HH:mm" formControlName="ends_at" />
+              @if (fieldInvalid('appointment', 'ends_at')) {
+                <span>Kraj termina je obavezan.</span>
+              }
+            </label>
+            <label>
+              Tip
+              <select formControlName="type">
+                <option value="">Izaberi tip termina</option>
+                @for (type of appointmentTypeOptions; track type.value) {
+                  <option [value]="type.value">{{ type.label }}</option>
+                }
+              </select>
+              @if (fieldInvalid('appointment', 'type')) {
+                <span>Tip termina je obavezan.</span>
+              }
+            </label>
+            <label>
+              Zaduženi član osoblja
+              <select formControlName="assigned_user_id">
+                <option value="">Izaberi osobu</option>
+                @for (member of staff(); track member.id) {
+                  <option [value]="member.id">{{ member.name }}</option>
+                }
+              </select>
+              @if (fieldInvalid('appointment', 'assigned_user_id')) {
+                <span>Zaduženi član osoblja je obavezan.</span>
+              }
+            </label>
+            <label>
+              Podsetnik za osoblje
+              <app-serbian-date-picker mode="datetime" placeholder="dd.MM.yyyy. HH:mm" errorText="Unesite datum i vreme u formatu dd.MM.yyyy. HH:mm" formControlName="reminder_staff_at" />
+            </label>
+            <label>
+              Podsetnik za pacijenta
+              <app-serbian-date-picker mode="datetime" placeholder="dd.MM.yyyy. HH:mm" errorText="Unesite datum i vreme u formatu dd.MM.yyyy. HH:mm" formControlName="reminder_patient_at" />
+            </label>
+            <label class="full">
+              Napomena
+              <textarea formControlName="notes" rows="3"></textarea>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="submit" [disabled]="appointmentSubmitting()">{{ appointmentSubmitting() ? 'Čuvanje...' : 'Sačuvaj termin' }}</button>
+            <button type="button" class="secondary" (click)="closeModal()" [disabled]="appointmentSubmitting()">Odustani</button>
+          </div>
+        </form>
+      </article>
+    </section>
+  }
 
-    <article class="card form-card">
-      <div class="card-header">
-        <h2>Nova intervencija</h2>
-        <p>Intervencija može odmah napraviti sledeći korak i finansijski zapis.</p>
-      </div>
-      <form [formGroup]="interventionForm" (ngSubmit)="submitIntervention()">
-        <div class="form-grid">
-          <label>
-            Naziv
-            <input type="text" formControlName="title" />
-            @if (fieldInvalid('intervention', 'title')) {
-              <span>Naziv intervencije je obavezan.</span>
-            }
-          </label>
-          <label>
-            Datum intervencije
-            <app-serbian-date-picker formControlName="intervention_date" />
-            @if (fieldInvalid('intervention', 'intervention_date')) {
-              <span>Datum intervencije je obavezan.</span>
-            }
-          </label>
-          <label>
-            Termin
-            <select formControlName="appointment_id">
-              <option value="">Bez povezanog termina</option>
-              @for (appointment of appointments(); track appointment.id) {
-                <option [value]="appointment.id">{{ appointmentTitle(appointment) }} - {{ appointmentTime(appointment) }}</option>
-              }
-            </select>
-          </label>
-          <label>
-            Izvršio
-            <select formControlName="performed_by_user_id">
-              <option value="">Izaberi osobu</option>
-              @for (member of staff(); track member.id) {
-                <option [value]="member.id">{{ member.name }}</option>
-              }
-            </select>
-            @if (fieldInvalid('intervention', 'performed_by_user_id')) {
-              <span>Izvršilac je obavezan.</span>
-            }
-          </label>
-          <label>
-            Zadužen za sledeći korak
-            <select formControlName="assigned_to_user_id">
-              <option value="">Izaberi osobu</option>
-              @for (member of staff(); track member.id) {
-                <option [value]="member.id">{{ member.name }}</option>
-              }
-            </select>
-            @if (fieldInvalid('intervention', 'assigned_to_user_id')) {
-              <span>Zaduženi član osoblja je obavezan.</span>
-            }
-          </label>
-          <label>
-            Rok sledećeg koraka
-            <app-serbian-date-picker formControlName="task_due_date" />
-          </label>
-          <label>
-            Ukupna cena
-            <input type="number" min="0" formControlName="total_cost" />
-          </label>
-          <label>
-            Plaćeno
-            <input type="number" min="0" formControlName="paid_amount" />
-          </label>
-          <label>
-            Podsetnik za osoblje
-            <app-serbian-date-picker
-              mode="datetime"
-              placeholder="dd.MM.yyyy. HH:mm"
-              errorText="Unesite datum i vreme u formatu dd.MM.yyyy. HH:mm"
-              formControlName="reminder_staff_at"
-            />
-          </label>
-          <label>
-            Podsetnik za pacijenta
-            <app-serbian-date-picker
-              mode="datetime"
-              placeholder="dd.MM.yyyy. HH:mm"
-              errorText="Unesite datum i vreme u formatu dd.MM.yyyy. HH:mm"
-              formControlName="reminder_patient_at"
-            />
-          </label>
-          <label class="full">
-            Opis
-            <textarea formControlName="description" rows="3"></textarea>
-          </label>
-          <label class="full">
-            Sledeci korak
-            <textarea formControlName="next_step" rows="3"></textarea>
-          </label>
+  @if (activeModal() === 'intervention') {
+    <section class="modal-backdrop" aria-label="Zatvori modal" (click)="closeModal()">
+      <article class="card modal-card form-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <div class="modal-title">
+          <div>
+            <h2>Nova intervencija</h2>
+            <p>Intervencija može odmah napraviti sledeći korak i finansijski zapis.</p>
+          </div>
+          <button type="button" class="secondary icon-button" aria-label="Zatvori" (click)="closeModal()" [disabled]="interventionSubmitting()">X</button>
         </div>
-        <button type="submit" [disabled]="interventionSubmitting()">
-          {{ interventionSubmitting() ? 'Čuvanje...' : 'Sačuvaj intervenciju' }}
-        </button>
-      </form>
-    </article>
+        @if (formError()) {
+          <div class="notice error modal-notice">
+            <strong>{{ formError() }}</strong>
+            @if (validationErrors().length) {
+              <ul>
+                @for (message of validationErrors(); track message) {
+                  <li>{{ message }}</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+        <form [formGroup]="interventionForm" (ngSubmit)="submitIntervention()">
+          <div class="form-grid">
+            <label>
+              Naziv
+              <input type="text" formControlName="title" />
+              @if (fieldInvalid('intervention', 'title')) {
+                <span>Naziv intervencije je obavezan.</span>
+              }
+            </label>
+            <label>
+              Datum intervencije
+              <app-serbian-date-picker formControlName="intervention_date" />
+              @if (fieldInvalid('intervention', 'intervention_date')) {
+                <span>Datum intervencije je obavezan.</span>
+              }
+            </label>
+            <label>
+              Termin
+              <select formControlName="appointment_id">
+                <option value="">Bez povezanog termina</option>
+                @for (appointment of appointments(); track appointment.id) {
+                  <option [value]="appointment.id">{{ appointmentTitle(appointment) }} - {{ appointmentTime(appointment) }}</option>
+                }
+              </select>
+            </label>
+            <label>
+              Izvršio
+              <select formControlName="performed_by_user_id">
+                <option value="">Izaberi osobu</option>
+                @for (member of staff(); track member.id) {
+                  <option [value]="member.id">{{ member.name }}</option>
+                }
+              </select>
+              @if (fieldInvalid('intervention', 'performed_by_user_id')) {
+                <span>Izvršilac je obavezan.</span>
+              }
+            </label>
+            <label>
+              Zadužen za sledeći korak
+              <select formControlName="assigned_to_user_id">
+                <option value="">Izaberi osobu</option>
+                @for (member of staff(); track member.id) {
+                  <option [value]="member.id">{{ member.name }}</option>
+                }
+              </select>
+              @if (fieldInvalid('intervention', 'assigned_to_user_id')) {
+                <span>Zaduženi član osoblja je obavezan.</span>
+              }
+            </label>
+            <label>
+              Rok sledećeg koraka
+              <app-serbian-date-picker formControlName="task_due_date" />
+            </label>
+            <label>
+              Ukupna cena
+              <input type="number" min="0" formControlName="total_cost" />
+            </label>
+            <label>
+              Plaćeno
+              <input type="number" min="0" formControlName="paid_amount" />
+            </label>
+            <label>
+              Podsetnik za osoblje
+              <app-serbian-date-picker mode="datetime" placeholder="dd.MM.yyyy. HH:mm" errorText="Unesite datum i vreme u formatu dd.MM.yyyy. HH:mm" formControlName="reminder_staff_at" />
+            </label>
+            <label>
+              Podsetnik za pacijenta
+              <app-serbian-date-picker mode="datetime" placeholder="dd.MM.yyyy. HH:mm" errorText="Unesite datum i vreme u formatu dd.MM.yyyy. HH:mm" formControlName="reminder_patient_at" />
+            </label>
+            <label class="full">
+              Opis
+              <textarea formControlName="description" rows="3"></textarea>
+            </label>
+            <label class="full">
+              Sledeći korak
+              <textarea formControlName="next_step" rows="3"></textarea>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="submit" [disabled]="interventionSubmitting()">{{ interventionSubmitting() ? 'Čuvanje...' : 'Sačuvaj intervenciju' }}</button>
+            <button type="button" class="secondary" (click)="closeModal()" [disabled]="interventionSubmitting()">Odustani</button>
+          </div>
+        </form>
+      </article>
+    </section>
+  }
 
-    <article class="card form-card">
-      <div class="card-header">
-        <h2>Novi zadatak</h2>
-        <p>Zadatak se prikazuje u aktivnim stavkama dok se ne završi.</p>
-      </div>
-      <form [formGroup]="taskForm" (ngSubmit)="submitTask()">
-        <div class="form-grid one-column">
-          <label>
-            Opis zadatka
-            <textarea formControlName="description" rows="3"></textarea>
-            @if (fieldInvalid('task', 'description')) {
-              <span>Opis zadatka je obavezan.</span>
-            }
-          </label>
-          <label>
-            Rok
-            <app-serbian-date-picker formControlName="due_date" />
-          </label>
-          <label>
-            Zaduženi član osoblja
-            <select formControlName="assigned_to_user_id">
-              <option value="">Izaberi osobu</option>
-              @for (member of staff(); track member.id) {
-                <option [value]="member.id">{{ member.name }}</option>
-              }
-            </select>
-            @if (fieldInvalid('task', 'assigned_to_user_id')) {
-              <span>Zaduženi član osoblja je obavezan.</span>
-            }
-          </label>
+  @if (activeModal() === 'task') {
+    <section class="modal-backdrop" aria-label="Zatvori modal" (click)="closeModal()">
+      <article class="card modal-card form-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <div class="modal-title">
+          <div>
+            <h2>Novi zadatak</h2>
+            <p>Zadatak se prikazuje u aktivnim stavkama dok se ne završi.</p>
+          </div>
+          <button type="button" class="secondary icon-button" aria-label="Zatvori" (click)="closeModal()" [disabled]="taskSubmitting()">X</button>
         </div>
-        <button type="submit" [disabled]="taskSubmitting()">
-          {{ taskSubmitting() ? 'Čuvanje...' : 'Sačuvaj zadatak' }}
-        </button>
-      </form>
-    </article>
+        @if (formError()) {
+          <div class="notice error modal-notice">
+            <strong>{{ formError() }}</strong>
+            @if (validationErrors().length) {
+              <ul>
+                @for (message of validationErrors(); track message) {
+                  <li>{{ message }}</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+        <form [formGroup]="taskForm" (ngSubmit)="submitTask()">
+          <div class="form-grid one-column">
+            <label>
+              Opis zadatka
+              <textarea formControlName="description" rows="3"></textarea>
+              @if (fieldInvalid('task', 'description')) {
+                <span>Opis zadatka je obavezan.</span>
+              }
+            </label>
+            <label>
+              Rok
+              <app-serbian-date-picker formControlName="due_date" />
+            </label>
+            <label>
+              Zaduženi član osoblja
+              <select formControlName="assigned_to_user_id">
+                <option value="">Izaberi osobu</option>
+                @for (member of staff(); track member.id) {
+                  <option [value]="member.id">{{ member.name }}</option>
+                }
+              </select>
+              @if (fieldInvalid('task', 'assigned_to_user_id')) {
+                <span>Zaduženi član osoblja je obavezan.</span>
+              }
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="submit" [disabled]="taskSubmitting()">{{ taskSubmitting() ? 'Čuvanje...' : 'Sačuvaj zadatak' }}</button>
+            <button type="button" class="secondary" (click)="closeModal()" [disabled]="taskSubmitting()">Odustani</button>
+          </div>
+        </form>
+      </article>
+    </section>
+  }
 
-    <article class="card form-card">
-      <div class="card-header">
-        <h2>Promena stanja</h2>
-        <p>Promenite trenutno stanje pacijenta i upišite razlog ako je potreban.</p>
-      </div>
-      <form [formGroup]="statusForm" (ngSubmit)="submitStatus()">
-        <div class="form-grid one-column">
-          <label>
-            Stanje
-            <select formControlName="manual_status">
-              @for (status of statusOptions; track status.value) {
-                <option [value]="status.value">{{ status.label }}</option>
-              }
-            </select>
-          </label>
-          <label>
-            Razlog promene
-            <textarea formControlName="manual_status_reason" rows="4"></textarea>
-          </label>
+  @if (activeModal() === 'status') {
+    <section class="modal-backdrop" aria-label="Zatvori modal" (click)="closeModal()">
+      <article class="card modal-card form-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <div class="modal-title">
+          <div>
+            <h2>Promena stanja</h2>
+            <p>Promenite trenutno stanje pacijenta i upišite razlog ako je potreban.</p>
+          </div>
+          <button type="button" class="secondary icon-button" aria-label="Zatvori" (click)="closeModal()" [disabled]="statusSubmitting()">X</button>
         </div>
-        <button type="submit" [disabled]="statusSubmitting()">
-          {{ statusSubmitting() ? 'Čuvanje...' : 'Sačuvaj stanje' }}
-        </button>
-      </form>
-    </article>
-  </section>
+        @if (formError()) {
+          <div class="notice error modal-notice">
+            <strong>{{ formError() }}</strong>
+            @if (validationErrors().length) {
+              <ul>
+                @for (message of validationErrors(); track message) {
+                  <li>{{ message }}</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+        <form [formGroup]="statusForm" (ngSubmit)="submitStatus()">
+          <div class="form-grid one-column">
+            <label>
+              Stanje
+              <select formControlName="manual_status">
+                @for (status of statusOptions; track status.value) {
+                  <option [value]="status.value">{{ status.label }}</option>
+                }
+              </select>
+            </label>
+            <label>
+              Razlog promene
+              <textarea formControlName="manual_status_reason" rows="4"></textarea>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="submit" [disabled]="statusSubmitting()">{{ statusSubmitting() ? 'Čuvanje...' : 'Sačuvaj stanje' }}</button>
+            <button type="button" class="secondary" (click)="closeModal()" [disabled]="statusSubmitting()">Odustani</button>
+          </div>
+        </form>
+      </article>
+    </section>
+  }
+
+  @if (selectedAppointment(); as appointment) {
+    <section class="modal-backdrop" aria-label="Zatvori detalje termina" (click)="closeAppointmentDetails()">
+      <article class="card modal-card appointment-detail-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <div class="modal-title">
+          <div>
+            <h2>Detalji termina</h2>
+            <p>{{ appointmentRange(appointment) }}</p>
+          </div>
+          <button type="button" class="secondary icon-button" aria-label="Zatvori" (click)="closeAppointmentDetails()">X</button>
+        </div>
+        <dl>
+          <div>
+            <dt>Tip termina</dt>
+            <dd>{{ appointmentTitle(appointment) }}</dd>
+          </div>
+          <div>
+            <dt>Vreme</dt>
+            <dd>{{ appointmentRange(appointment) }}</dd>
+          </div>
+          <div>
+            <dt>Zaduženi član osoblja</dt>
+            <dd>{{ staffName(appointmentStaff(appointment)) }}</dd>
+          </div>
+          <div>
+            <dt>Napomena</dt>
+            <dd>{{ appointment.notes || appointment.note || '-' }}</dd>
+          </div>
+        </dl>
+      </article>
+    </section>
+  }
 }

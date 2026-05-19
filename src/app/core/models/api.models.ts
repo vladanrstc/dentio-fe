@@ -48,6 +48,7 @@ export type Appointment = {
   type?: string | null;
   note?: string;
   notes?: string | null;
+  assigned_to?: StaffMember | string | null;
   assigned_user?: StaffMember | string | null;
   assigned_user_id?: number | null;
 };
@@ -76,6 +77,7 @@ export type ActiveItem = {
   description?: string | null;
   due_date?: string | null;
   due_at?: string | null;
+  assigned_to?: StaffMember | string | null;
   assigned_to_user?: StaffMember | string | null;
   status?: string | null;
 };
