@@ -1,16 +1,22 @@
 <div class="login-page">
   <form class="login-card" (ngSubmit)="submit()">
     <h1>Dentio</h1>
-    <p>Prijava na admin panel</p>
+    <p>Prijava na Dentio platformu</p>
 
     <label>Email</label>
-    <input type="email" name="email" [(ngModel)]="email" />
+    <input type="email" name="email" [(ngModel)]="email" (ngModelChange)="clearError()" required email #emailField="ngModel" />
+    @if (submitted() && emailField.invalid) {
+      <div class="field-error">Unesite validan email.</div>
+    }
 
     <label>Lozinka</label>
-    <input type="password" name="password" [(ngModel)]="password" />
+    <input type="password" name="password" [(ngModel)]="password" (ngModelChange)="clearError()" required #passwordField="ngModel" />
+    @if (submitted() && passwordField.invalid) {
+      <div class="field-error">Unesite lozinku.</div>
+    }
 
-    @if (error) {
-      <div class="error">{{ error }}</div>
+    @if (error()) {
+      <div class="error">{{ error() }}</div>
     }
 
     <button type="submit">Prijavi se</button>

@@ -1,0 +1,63 @@
+<section class="page-header">
+  <div>
+    <span class="eyebrow">Izveštaji</span>
+    <h1>{{ title }}</h1>
+    <p>{{ subtitle }}</p>
+  </div>
+</section>
+
+@if (success()) {
+  <div class="notice success">{{ success() }}</div>
+}
+
+@if (error()) {
+  <div class="notice error">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <section class="notice loading-state">
+    <div class="spinner"></div>
+    <div>
+      <strong>Učitavanje podešavanja</strong>
+      <p>Molimo sačekajte dok se učitaju trenutna podešavanja izveštaja.</p>
+    </div>
+  </section>
+} @else {
+  <form class="settings-list" [formGroup]="form">
+    <div formArrayName="reports">
+      @for (setting of settingsControls.controls; track setting.value.report; let index = $index) {
+        <article class="setting-card" [formGroupName]="index">
+          <div>
+            <span class="badge">{{ reportLabel(setting.value.report) }}</span>
+            <h2>{{ reportLabel(setting.value.report) }}</h2>
+            <p>{{ reportDescription(setting.value.report) }}</p>
+          </div>
+
+          <div class="setting-fields">
+            <label>
+              Učestalost
+              <select formControlName="frequency">
+                @for (option of frequencyOptions; track option.value) {
+                  <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+            </label>
+
+            <label>
+              Format
+              <select formControlName="format">
+                @for (option of formatOptions; track option.value) {
+                  <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+            </label>
+
+            <button type="button" (click)="saveSetting(index)" [disabled]="savingReport() === setting.value.report">
+              {{ savingReport() === setting.value.report ? 'Čuvanje...' : 'Sačuvaj' }}
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  </form>
+}

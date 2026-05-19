@@ -1,0 +1,99 @@
+<section class="page-header">
+  <span>Ordinacija</span>
+  <h1>Pozivnice</h1>
+  <p>Pregled i slanje pozivnica za nove članove tima.</p>
+</section>
+
+@if (success()) {
+  <div class="notice success">{{ success() }}</div>
+}
+
+@if (error()) {
+  <div class="notice error">
+    <strong>{{ error() }}</strong>
+    @if (validationErrors().length) {
+      <ul>
+        @for (message of validationErrors(); track message) {
+          <li>{{ message }}</li>
+        }
+      </ul>
+    }
+  </div>
+}
+
+@if (canInvite()) {
+  <section class="card form-card">
+    <h2>Nova pozivnica</h2>
+    <form [formGroup]="inviteForm" (ngSubmit)="submit()">
+      <label>
+        Email
+        <input type="email" formControlName="email" placeholder="clan@ordinacija.rs" />
+        @if (fieldInvalid('email')) {
+          <span>Unesite validnu email adresu.</span>
+        }
+      </label>
+
+      <label>
+        Uloga
+        <select formControlName="role">
+          <option value="dentist">Zubar</option>
+          <option value="nurse">Medicinska sestra</option>
+        </select>
+      </label>
+
+      <button type="submit" [disabled]="submitting()">
+        {{ submitting() ? 'Slanje...' : 'Pošalji pozivnicu' }}
+      </button>
+    </form>
+  </section>
+}
+
+@if (loading()) {
+  <section class="state-card">
+    <div class="spinner"></div>
+    <div>
+      <strong>Učitavanje pozivnica</strong>
+      <p>Molimo sačekajte dok se učitaju podaci.</p>
+    </div>
+  </section>
+} @else {
+  <section class="card">
+    <h2>Lista pozivnica</h2>
+    @if (invites().length) {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Uloga</th>
+              <th>Stanje</th>
+              <th>Ističe</th>
+              <th>Prihvaćena</th>
+              <th>Kreirana</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (invite of invites(); track invite.id) {
+              <tr>
+                <td><strong>{{ invite.email }}</strong></td>
+                <td>{{ formatRole(invite.role) }}</td>
+                <td><span class="badge">{{ formatStatus(invite.status) }}</span></td>
+                <td>{{ formatDate(invite.expires_at) }}</td>
+                <td>{{ formatDate(invite.accepted_at) }}</td>
+                <td>{{ formatDate(invite.created_at) }}</td>
+                <td class="actions">
+                  @if (canDeleteInvite(invite)) {
+                    <button type="button" class="danger" (click)="deleteInvite(invite)">Obriši</button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="empty-state">Nema pozivnica za prikaz.</div>
+    }
+  </section>
+}

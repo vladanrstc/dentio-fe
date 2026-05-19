@@ -1,0 +1,33 @@
+<div class="admin-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">D</div>
+      <div>
+        <strong>Dentio Platforma</strong>
+        <span>Super admin panel</span>
+      </div>
+    </div>
+
+    <nav aria-label="Superadmin navigacija">
+      <a routerLink="/admin/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Pregled platforme</a>
+      <a routerLink="/admin/companies" routerLinkActive="active">Kompanije</a>
+      <a routerLink="/admin/invite-owner" routerLinkActive="active">Pozovi vlasnika</a>
+      <a routerLink="/admin/reports/settings" routerLinkActive="active">Izveštaji</a>
+    </nav>
+  </aside>
+
+  <section class="main-area">
+    <header class="topbar">
+      <div>
+        <strong>{{ user()?.name || 'Platform administrator' }}</strong>
+        <span>{{ user()?.email || 'Superadmin nalog' }}</span>
+      </div>
+
+      <button type="button" (click)="logout()">Odjavi se</button>
+    </header>
+
+    <main class="content">
+      <router-outlet></router-outlet>
+    </main>
+  </section>
+</div>

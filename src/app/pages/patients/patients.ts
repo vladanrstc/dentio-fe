@@ -1,21 +1,30 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 
-import { Api, CollectionResponse, Patient, PatientPayload, StaffMember } from '../../core/services/api';
+import { Patient, PatientPayload, ReportFormat, StaffMember } from '../../core/models/api.models';
+import { FileDownloadService } from '../../core/services/file-download.service';
+import { PatientsApi } from '../../core/services/patients-api.service';
+import { ReportsApi } from '../../core/services/reports-api.service';
+import { formatMoney, toApiDate } from '../../core/utils/formatters';
+import { extractValidationErrors, unwrapCollection } from '../../core/utils/http-helpers';
+import { reportExportErrorMessage, reportFilename } from '../../core/utils/report-utils';
+import { SerbianDatePicker } from '../../shared/components/serbian-date-picker/serbian-date-picker';
 
 @Component({
   selector: 'app-patients',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, SerbianDatePicker],
   templateUrl: './patients.html',
   styleUrl: './patients.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Patients {
-  private readonly api = inject(Api);
+  private readonly patientsApi = inject(PatientsApi);
+  private readonly reportsApi = inject(ReportsApi);
+  private readonly fileDownload = inject(FileDownloadService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -25,10 +34,21 @@ export class Patients {
   protected readonly saving = signal(false);
   protected readonly error = signal('');
   protected readonly success = signal('');
+  protected readonly exportError = signal('');
+  protected readonly exportingPatients = signal(false);
   protected readonly validationErrors = signal<string[]>([]);
   protected readonly editingPatient = signal<Patient | null>(null);
+  protected readonly patientModalOpen = signal(false);
+  protected readonly formatMoney = formatMoney;
 
   protected readonly searchControl = this.formBuilder.nonNullable.control('');
+  protected readonly exportFormatControl = this.formBuilder.nonNullable.control<ReportFormat>('csv');
+  protected readonly exportFiltersForm = this.formBuilder.nonNullable.group({
+    status: [''],
+    primary_dentist_id: [''],
+    has_open_tasks: [''],
+    has_debt: [''],
+  });
   protected readonly patientForm = this.formBuilder.group({
     first_name: ['', [Validators.required]],
     last_name: ['', [Validators.required]],
@@ -63,8 +83,8 @@ export class Patients {
     const payload = this.buildPayload();
     const editingPatient = this.editingPatient();
     const request = editingPatient
-      ? this.api.updatePatient(editingPatient.id, payload)
-      : this.api.createPatient(payload);
+      ? this.patientsApi.updatePatient(editingPatient.id, payload)
+      : this.patientsApi.createPatient(payload);
 
     this.saving.set(true);
 
@@ -76,11 +96,88 @@ export class Patients {
         this.loadPatients(this.searchControl.value);
       },
       error: (error: HttpErrorResponse) => {
-        this.error.set('Cuvanje pacijenta nije uspelo. Proverite podatke i pokusajte ponovo.');
-        this.validationErrors.set(this.extractValidationErrors(error));
+        this.error.set('Čuvanje pacijenta nije uspelo. Proverite podatke i pokušajte ponovo.');
+        this.validationErrors.set(extractValidationErrors(error));
         this.saving.set(false);
       },
     });
+  }
+
+  protected openCreateModal(): void {
+    this.editingPatient.set(null);
+    this.validationErrors.set([]);
+    this.patientForm.reset({
+      first_name: '',
+      last_name: '',
+      address: '',
+      email: '',
+      phone: '',
+      date_of_birth: '',
+      primary_dentist_id: '',
+    });
+    this.patientModalOpen.set(true);
+  }
+
+  protected closePatientModal(): void {
+    if (this.saving()) {
+      return;
+    }
+
+    this.cancelEdit();
+  }
+
+  protected deletePatient(patient: Patient): void {
+    const confirmed = confirm(
+      `Da li ste sigurni da želite da obrišete pacijenta ${this.fullName(patient)}?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.success.set('');
+    this.error.set('');
+
+    this.patientsApi.deletePatient(patient.id).subscribe({
+      next: () => {
+        this.success.set('Pacijent je uspešno obrisan.');
+        this.patients.update((patients) => patients.filter((item) => item.id !== patient.id));
+      },
+      error: (_error: HttpErrorResponse) => {
+        this.error.set('Brisanje pacijenta nije uspelo.');
+      },
+    });
+  }
+
+  protected exportPatients(): void {
+    this.exportError.set('');
+    this.exportingPatients.set(true);
+
+    const format = this.exportFormatControl.value;
+    const search = this.searchControl.value.trim();
+    const filters = this.exportFiltersForm.getRawValue();
+
+    this.reportsApi
+      .exportPatients({
+        format,
+        search,
+        status: filters.status,
+        primary_dentist_id: filters.primary_dentist_id,
+        has_open_tasks: filters.has_open_tasks,
+        has_debt: filters.has_debt,
+      })
+      .subscribe({
+        next: (blob) => {
+          this.fileDownload.download(blob, reportFilename('pacijenti', format));
+          this.exportingPatients.set(false);
+        },
+        error: () => {
+          this.exportError.set(
+            reportExportErrorMessage(format, 'Export pacijenata trenutno nije uspeo. Pokušajte ponovo.'),
+          );
+          this.exportingPatients.set(false);
+        },
+      });
   }
 
   protected startEdit(patient: Patient): void {
@@ -88,6 +185,7 @@ export class Patients {
     this.success.set('');
     this.error.set('');
     this.validationErrors.set([]);
+    this.patientModalOpen.set(true);
 
     this.patientForm.patchValue({
       first_name: patient.first_name ?? '',
@@ -101,6 +199,7 @@ export class Patients {
   }
 
   protected cancelEdit(): void {
+    this.patientModalOpen.set(false);
     this.editingPatient.set(null);
     this.validationErrors.set([]);
     this.patientForm.reset({
@@ -131,16 +230,6 @@ export class Patients {
     return patient.full_name || `${patient.first_name} ${patient.last_name}`.trim();
   }
 
-  protected formatMoney(value: number | string | null | undefined): string {
-    const amount = Number(value ?? 0);
-
-    return new Intl.NumberFormat('sr-RS', {
-      style: 'currency',
-      currency: 'RSD',
-      maximumFractionDigits: 0,
-    }).format(Number.isFinite(amount) ? amount : 0);
-  }
-
   protected fieldInvalid(fieldName: keyof typeof this.patientForm.controls): boolean {
     const field = this.patientForm.controls[fieldName];
     return field.invalid && (field.dirty || field.touched);
@@ -151,9 +240,9 @@ export class Patients {
     this.error.set('');
     this.validationErrors.set([]);
 
-    this.api.getPatients(search).subscribe({
+    this.patientsApi.getPatients(search).subscribe({
       next: (response) => {
-        this.patients.set(this.unwrapCollection(response));
+        this.patients.set(unwrapCollection(response));
         this.loading.set(false);
       },
       error: () => {
@@ -164,9 +253,9 @@ export class Patients {
   }
 
   private loadStaff(): void {
-    this.api.getStaff().subscribe({
+    this.patientsApi.getStaff().subscribe({
       next: (response) => {
-        this.staff.set(this.unwrapCollection(response));
+        this.staff.set(unwrapCollection(response));
       },
       error: () => {
         this.staff.set([]);
@@ -183,7 +272,7 @@ export class Patients {
       address: (value.address ?? '').trim(),
       email: this.emptyToNull(value.email),
       phone: this.emptyToNull(value.phone),
-      date_of_birth: this.emptyToNull(value.date_of_birth),
+      date_of_birth: this.emptyToNull(toApiDate(value.date_of_birth)),
       primary_dentist_id: value.primary_dentist_id ? Number(value.primary_dentist_id) : null,
     };
   }
@@ -191,16 +280,6 @@ export class Patients {
   private emptyToNull(value: string | null | undefined): string | null {
     const trimmedValue = value?.trim() ?? '';
     return trimmedValue || null;
-  }
-
-  private extractValidationErrors(error: HttpErrorResponse): string[] {
-    const response = error.error as { message?: string; errors?: Record<string, string[]> } | null;
-
-    if (!response?.errors) {
-      return response?.message ? [response.message] : [];
-    }
-
-    return Object.values(response.errors).flat();
   }
 
   private resolveDentistId(patient: Patient): string {
@@ -218,17 +297,5 @@ export class Patients {
     }
 
     return '';
-  }
-
-  private unwrapCollection<T>(response: CollectionResponse<T>): T[] {
-    if (Array.isArray(response)) {
-      return response;
-    }
-
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-
-    return response.data.data;
   }
 }

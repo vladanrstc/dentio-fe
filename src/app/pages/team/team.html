@@ -1,0 +1,61 @@
+<section class="page-header">
+  <span>Ordinacija</span>
+  <h1>Tim</h1>
+  <p>Pregled članova tima u ordinaciji.</p>
+</section>
+
+@if (success()) {
+  <div class="notice success">{{ success() }}</div>
+}
+
+@if (loading()) {
+  <section class="state-card">
+    <div class="spinner"></div>
+    <div>
+      <strong>Učitavanje tima</strong>
+      <p>Molimo sačekajte dok se učitaju članovi tima.</p>
+    </div>
+  </section>
+} @else if (error()) {
+  <section class="state-card error">
+    <strong>{{ error() }}</strong>
+    <p>Pokušajte ponovo za nekoliko trenutaka.</p>
+  </section>
+} @else {
+  <section class="card">
+    @if (members().length) {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ime i prezime</th>
+              <th>Email</th>
+              <th>Telefon</th>
+              <th>Uloga</th>
+              <th>Kreirano</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (member of members(); track member.id) {
+              <tr>
+                <td><strong>{{ memberName(member) }}</strong></td>
+                <td>{{ member.email || '-' }}</td>
+                <td>{{ member.phone || '-' }}</td>
+                <td><span class="badge">{{ roleLabel(member.role) }}</span></td>
+                <td>{{ formatDate(member.created_at) }}</td>
+                <td class="actions">
+                  @if (canDeleteMember(member)) {
+                    <button type="button" class="danger" (click)="deleteTeamMember(member)">Obriši</button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="empty-state">Nema članova tima za prikaz.</div>
+    }
+  </section>
+}

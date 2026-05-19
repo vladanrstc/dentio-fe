@@ -1,0 +1,111 @@
+<a class="back-link" routerLink="/admin/companies">Nazad na kompanije</a>
+
+@if (loading()) {
+  <section class="state-card">
+    <div class="spinner"></div>
+    <div>
+      <strong>Učitavanje kompanije</strong>
+      <p>Molimo sačekajte dok se učitaju podaci.</p>
+    </div>
+  </section>
+} @else if (error()) {
+  <section class="state-card error">
+    <strong>{{ error() }}</strong>
+    <p>Pokušajte ponovo za nekoliko trenutaka.</p>
+  </section>
+} @else if (company(); as company) {
+  @if (success()) {
+    <div class="notice success">{{ success() }}</div>
+  }
+
+  <section class="page-header">
+    <span>Kompanija</span>
+    <h1>{{ company.name }}</h1>
+    <p>{{ company.email || 'Email nije unet' }} / {{ company.phone || 'Telefon nije unet' }}</p>
+  </section>
+
+  <section class="kpi-grid">
+    @for (card of kpiCards(); track card.label) {
+      <article>
+        <span>{{ card.label }}</span>
+        <strong>{{ card.value }}</strong>
+      </article>
+    }
+  </section>
+
+  <section class="content-grid">
+    <article class="card">
+      <h2>Osnovni podaci</h2>
+      <dl>
+        <div><dt>Naziv</dt><dd>{{ company.name }}</dd></div>
+        <div><dt>Email</dt><dd>{{ company.email || '-' }}</dd></div>
+        <div><dt>Telefon</dt><dd>{{ company.phone || '-' }}</dd></div>
+        <div><dt>Adresa</dt><dd>{{ company.address || '-' }}</dd></div>
+        <div><dt>Kreirao</dt><dd>{{ ownerName(company.created_by) }}</dd></div>
+        <div><dt>Datum kreiranja</dt><dd>{{ formatDate(company.created_at) }}</dd></div>
+      </dl>
+    </article>
+
+    <article class="card">
+      <h2>Osoblje</h2>
+      @if (company.staff?.length) {
+        <div class="list">
+          @for (member of company.staff; track member.id) {
+            <div class="list-row">
+              <div>
+                <strong>{{ member.name }}</strong>
+                <span>{{ member.email || '-' }}</span>
+              </div>
+              <span class="badge">{{ roleLabel(member.role) }}</span>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-state">Nema evidentiranog osoblja.</div>
+      }
+    </article>
+
+    <article class="card">
+      <h2>Poslednji pacijenti</h2>
+      @if (company.latest_patients?.length) {
+        <div class="list">
+          @for (patient of company.latest_patients; track patient.id) {
+            <div class="list-row">
+              <div>
+                <strong>{{ patient.full_name }}</strong>
+                <span>{{ patient.email || '-' }} / {{ patient.phone || '-' }}</span>
+              </div>
+              <span class="badge">{{ statusLabel(patient.manual_status) }}</span>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-state">Nema pacijenata za prikaz.</div>
+      }
+    </article>
+
+    <article class="card">
+      <h2>Poslednje pozivnice</h2>
+      @if (company.latest_invites?.length) {
+        <div class="list">
+          @for (invite of company.latest_invites; track invite.id) {
+            <div class="list-row">
+              <div>
+                <strong>{{ invite.email }}</strong>
+                <span>{{ formatDate(invite.created_at) }}</span>
+              </div>
+              <div class="row-actions">
+                <span class="badge">{{ statusLabel(invite.status) }}</span>
+                @if (canDeleteInvite(invite)) {
+                  <button type="button" class="danger" (click)="deleteInvite(invite)">Obriši</button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-state">Nema pozivnica za prikaz.</div>
+      }
+    </article>
+  </section>
+}
