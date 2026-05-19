@@ -1,6 +1,9 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 
-import { Api, CollectionResponse, CompanyTeamMember } from '../../core/services/api';
+import { CompanyTeamMember } from '../../core/models/api.models';
+import { TeamApi } from '../../core/services/team-api.service';
+import { formatDate } from '../../core/utils/formatters';
+import { unwrapCollection } from '../../core/utils/http-helpers';
 import { roleLabel } from '../../core/utils/role-label';
 
 @Component({
@@ -10,18 +13,19 @@ import { roleLabel } from '../../core/utils/role-label';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Team {
-  private readonly api = inject(Api);
+  private readonly teamApi = inject(TeamApi);
 
   protected readonly members = signal<CompanyTeamMember[]>([]);
   protected readonly loading = signal(true);
   protected readonly error = signal('');
   protected readonly success = signal('');
   protected readonly roleLabel = roleLabel;
+  protected readonly formatDate = formatDate;
 
   constructor() {
-    this.api.getCompanyTeam().subscribe({
+    this.teamApi.getCompanyTeam().subscribe({
       next: (response) => {
-        this.members.set(this.unwrapCollection(response));
+        this.members.set(unwrapCollection(response));
         this.loading.set(false);
       },
       error: () => {
@@ -33,20 +37,6 @@ export class Team {
 
   protected memberName(member: CompanyTeamMember): string {
     return member.full_name || member.name || `${member.first_name ?? ''} ${member.last_name ?? ''}`.trim() || '-';
-  }
-
-  protected formatDate(value: string | null | undefined): string {
-    if (!value) {
-      return '-';
-    }
-
-    return new Intl.DateTimeFormat('sr-RS', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: value.includes('T') ? '2-digit' : undefined,
-      minute: value.includes('T') ? '2-digit' : undefined,
-    }).format(new Date(value));
   }
 
   protected canDeleteMember(member: CompanyTeamMember): boolean {
@@ -63,7 +53,7 @@ export class Team {
     this.success.set('');
     this.error.set('');
 
-    this.api.deleteTeamMember(member.id).subscribe({
+    this.teamApi.deleteTeamMember(member.id).subscribe({
       next: () => {
         this.success.set('Član tima je obrisan.');
         this.members.update((members) => members.filter((item) => item.id !== member.id));
@@ -72,17 +62,5 @@ export class Team {
         this.error.set('Brisanje člana tima nije uspelo.');
       },
     });
-  }
-
-  private unwrapCollection<T>(response: CollectionResponse<T>): T[] {
-    if (Array.isArray(response)) {
-      return response;
-    }
-
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-
-    return response.data.data;
   }
 }

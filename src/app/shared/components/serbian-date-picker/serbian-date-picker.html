@@ -1,0 +1,35 @@
+<div class="date-field">
+  @if (label()) {
+    <span class="date-label">{{ label() }}</span>
+  }
+
+  <span class="date-control" [class.invalid]="invalidFormat()">
+    <input
+      type="text"
+      [value]="displayValue()"
+      [placeholder]="placeholder()"
+      [disabled]="disabled()"
+      inputmode="numeric"
+      autocomplete="off"
+      (input)="handleTextInput($event)"
+      (blur)="markTouched()"
+    />
+    <button type="button" [disabled]="disabled()" (click)="openPicker()" aria-label="Otvori kalendar">
+      Kalendar
+    </button>
+    <input
+      #nativeDateInput
+      class="native-date-input"
+      [type]="nativeInputType()"
+      [value]="nativeInputValue()"
+      [disabled]="disabled()"
+      tabindex="-1"
+      aria-hidden="true"
+      (change)="handleNativeDateChange($event)"
+    />
+  </span>
+
+  @if (invalidFormat()) {
+    <span class="date-error">{{ errorText() }}</span>
+  }
+</div>

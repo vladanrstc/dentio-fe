@@ -168,6 +168,74 @@
   gap: 12px;
 }
 
+.report-form {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(170px, 1fr));
+}
+
+.report-form label {
+  color: #334155;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  font-weight: 800;
+  gap: 7px;
+}
+
+.report-form input,
+.report-form select {
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  color: var(--text);
+  min-height: 42px;
+  padding: 9px 11px;
+}
+
+.report-form input:focus,
+.report-form select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+  outline: none;
+}
+
+.report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.report-actions button {
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 800;
+  min-height: 40px;
+  padding: 10px 14px;
+}
+
+.report-actions button {
+  background: var(--primary);
+  color: white;
+}
+
+.report-actions button.secondary {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.report-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.report-error {
+  display: block;
+  margin-bottom: 14px;
+}
+
 .skeleton-card {
   animation: pulse 1.2s ease-in-out infinite;
   height: 142px;
@@ -209,6 +277,14 @@
 
   .appointment-row {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .report-form {
+    grid-template-columns: 1fr;
+  }
+
+  .report-actions {
     flex-direction: column;
   }
 }

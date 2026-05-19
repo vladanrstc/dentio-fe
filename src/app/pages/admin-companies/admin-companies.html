@@ -22,7 +22,28 @@
     <div class="notice success">{{ success() }}</div>
   }
 
+  @if (reportError()) {
+    <div class="notice error">{{ reportError() }}</div>
+  }
+
   <section class="card">
+    <div class="report-toolbar">
+      <div>
+        <h2>Export kompanija</h2>
+        <p>Preuzmite pregled kompanija u izabranom formatu.</p>
+      </div>
+      <div class="report-actions">
+        <select [formControl]="reportFormatControl" aria-label="Format exporta kompanija">
+          <option value="csv">CSV</option>
+          <option value="xlsx">Excel</option>
+          <option value="pdf">PDF</option>
+        </select>
+        <button type="button" (click)="exportCompanies()" [disabled]="exportingCompanies()">
+          {{ exportingCompanies() ? 'Export u toku...' : 'Export kompanija' }}
+        </button>
+      </div>
+    </div>
+
     @if (companies().length) {
       <div class="table-wrap">
         <table>

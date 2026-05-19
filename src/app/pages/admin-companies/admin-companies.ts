@@ -1,27 +1,39 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
-import { AdminCompany, Api, CollectionResponse } from '../../core/services/api';
+import { AdminCompany, ReportFormat } from '../../core/models/api.models';
+import { AdminApi } from '../../core/services/admin-api.service';
+import { FileDownloadService } from '../../core/services/file-download.service';
+import { ReportsApi } from '../../core/services/reports-api.service';
+import { unwrapCollection } from '../../core/utils/http-helpers';
+import { reportExportErrorMessage, reportFilename } from '../../core/utils/report-utils';
 
 @Component({
   selector: 'app-admin-companies',
-  imports: [RouterLink],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './admin-companies.html',
   styleUrl: './admin-companies.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminCompanies {
-  private readonly api = inject(Api);
+  private readonly adminApi = inject(AdminApi);
+  private readonly reportsApi = inject(ReportsApi);
+  private readonly fileDownload = inject(FileDownloadService);
+  private readonly formBuilder = inject(FormBuilder);
 
   protected readonly companies = signal<AdminCompany[]>([]);
   protected readonly loading = signal(true);
   protected readonly error = signal('');
   protected readonly success = signal('');
+  protected readonly reportError = signal('');
+  protected readonly exportingCompanies = signal(false);
+  protected readonly reportFormatControl = this.formBuilder.nonNullable.control<ReportFormat>('csv');
 
   constructor() {
-    this.api.getAdminCompanies().subscribe({
+    this.adminApi.getAdminCompanies().subscribe({
       next: (response) => {
-        this.companies.set(this.unwrapCollection(response));
+        this.companies.set(unwrapCollection(response));
         this.loading.set(false);
       },
       error: () => {
@@ -41,7 +53,7 @@ export class AdminCompanies {
     this.success.set('');
     this.error.set('');
 
-    this.api.deleteAdminCompany(company.id).subscribe({
+    this.adminApi.deleteAdminCompany(company.id).subscribe({
       next: () => {
         this.success.set('Kompanija je obrisana.');
         this.companies.update((companies) => companies.filter((item) => item.id !== company.id));
@@ -52,15 +64,23 @@ export class AdminCompanies {
     });
   }
 
-  private unwrapCollection<T>(response: CollectionResponse<T>): T[] {
-    if (Array.isArray(response)) {
-      return response;
-    }
+  protected exportCompanies(): void {
+    this.reportError.set('');
+    this.exportingCompanies.set(true);
 
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
+    const format = this.reportFormatControl.value;
 
-    return response.data.data;
+    this.reportsApi.exportCompanies({ format }).subscribe({
+      next: (blob) => {
+        this.fileDownload.download(blob, reportFilename('kompanije', format));
+        this.exportingCompanies.set(false);
+      },
+      error: () => {
+        this.reportError.set(
+          reportExportErrorMessage(format, 'Export kompanija trenutno nije uspeo. Pokušajte ponovo.'),
+        );
+        this.exportingCompanies.set(false);
+      },
+    });
   }
 }

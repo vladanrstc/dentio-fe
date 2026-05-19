@@ -5,26 +5,30 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import {
   ActiveItem,
-  Api,
   Appointment,
-  CollectionResponse,
   Intervention,
   Patient,
   StaffMember,
-} from '../../core/services/api';
+} from '../../core/models/api.models';
+import { PatientsApi } from '../../core/services/patients-api.service';
+import { formatDate, formatMoney, toApiDate, toApiDateTime as formatToApiDateTime } from '../../core/utils/formatters';
+import { extractValidationErrors, unwrapCollection } from '../../core/utils/http-helpers';
 import { statusLabel } from '../../core/utils/role-label';
+import { SerbianDatePicker } from '../../shared/components/serbian-date-picker/serbian-date-picker';
 
 type FormName = 'appointment' | 'intervention' | 'task' | 'status' | 'completeTask';
+type PatientDetailModal = 'appointment' | 'intervention' | 'task' | 'status';
+const APPOINTMENT_LABEL_MAX_LENGTH = 60;
 
 @Component({
   selector: 'app-patient-detail',
-  imports: [RouterLink, ReactiveFormsModule],
+  imports: [RouterLink, ReactiveFormsModule, SerbianDatePicker],
   templateUrl: './patient-detail.html',
   styleUrl: './patient-detail.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PatientDetail {
-  private readonly api = inject(Api);
+  private readonly patientsApi = inject(PatientsApi);
   private readonly route = inject(ActivatedRoute);
   private readonly formBuilder = inject(FormBuilder);
   private readonly patientId = Number(this.route.snapshot.paramMap.get('id'));
@@ -37,11 +41,15 @@ export class PatientDetail {
   protected readonly formError = signal('');
   protected readonly validationErrors = signal<string[]>([]);
   protected readonly statusLabel = statusLabel;
+  protected readonly formatDate = formatDate;
+  protected readonly formatMoney = formatMoney;
   protected readonly appointmentSubmitting = signal(false);
   protected readonly interventionSubmitting = signal(false);
   protected readonly taskSubmitting = signal(false);
   protected readonly statusSubmitting = signal(false);
   protected readonly completingTaskId = signal<number | null>(null);
+  protected readonly activeModal = signal<PatientDetailModal | null>(null);
+  protected readonly selectedAppointment = signal<Appointment | null>(null);
 
   protected readonly statusOptions = [
     { value: 'active', label: 'Aktivan' },
@@ -98,8 +106,7 @@ export class PatientDetail {
   });
 
   protected readonly appointments = computed(() => {
-    const patient = this.patient();
-    return patient?.appointments ?? patient?.upcoming_appointments ?? [];
+    return this.patient()?.appointments ?? [];
   });
 
   protected readonly activeItems = computed(() => {
@@ -120,32 +127,13 @@ export class PatientDetail {
     return patient.full_name || `${patient.first_name} ${patient.last_name}`.trim();
   }
 
-  protected formatDate(value: string | null | undefined): string {
-    if (!value) {
-      return '-';
-    }
-
-    return new Intl.DateTimeFormat('sr-RS', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: value.includes('T') || value.includes(':') ? '2-digit' : undefined,
-      minute: value.includes('T') || value.includes(':') ? '2-digit' : undefined,
-    }).format(new Date(value.replace(' ', 'T')));
-  }
-
-  protected formatMoney(value: number | string | null | undefined): string {
-    const amount = Number(value ?? 0);
-
-    return new Intl.NumberFormat('sr-RS', {
-      style: 'currency',
-      currency: 'RSD',
-      maximumFractionDigits: 0,
-    }).format(Number.isFinite(amount) ? amount : 0);
-  }
-
   protected appointmentTitle(appointment: Appointment): string {
-    return appointment.type || appointment.notes || appointment.note || appointment.patient_name || 'Termin';
+    return this.truncateLabel(this.appointmentFullTitle(appointment), APPOINTMENT_LABEL_MAX_LENGTH);
+  }
+
+  protected appointmentFullTitle(appointment: Appointment): string {
+    const typeLabel = this.appointmentTypeOptions.find((type) => type.value === appointment.type)?.label;
+    return typeLabel || appointment.type || appointment.notes || appointment.note || appointment.patient_name || 'Termin';
   }
 
   protected appointmentTime(appointment: Appointment): string {
@@ -172,6 +160,14 @@ export class PatientDetail {
 
   protected activeItemDueDate(item: ActiveItem): string {
     return this.formatDate(item.due_date ?? item.due_at);
+  }
+
+  protected appointmentStaff(appointment: Appointment): StaffMember | string | null | undefined {
+    return appointment.assigned_to ?? appointment.assigned_user;
+  }
+
+  protected activeItemStaff(item: ActiveItem): StaffMember | string | null | undefined {
+    return item.assigned_to ?? item.assigned_to_user;
   }
 
   protected dentistName(patient: Patient): string {
@@ -203,6 +199,39 @@ export class PatientDetail {
     return !!field && field.invalid && (field.dirty || field.touched);
   }
 
+  protected openModal(modal: PatientDetailModal): void {
+    this.clearMessages();
+
+    if (modal === 'intervention') {
+      this.openInterventionModal();
+      return;
+    }
+
+    this.activeModal.set(modal);
+  }
+
+  protected closeModal(): void {
+    if (
+      this.appointmentSubmitting() ||
+      this.interventionSubmitting() ||
+      this.taskSubmitting() ||
+      this.statusSubmitting()
+    ) {
+      return;
+    }
+
+    this.resetModalForms();
+    this.activeModal.set(null);
+  }
+
+  protected openAppointmentDetails(appointment: Appointment): void {
+    this.selectedAppointment.set(appointment);
+  }
+
+  protected closeAppointmentDetails(): void {
+    this.selectedAppointment.set(null);
+  }
+
   protected submitAppointment(): void {
     this.clearMessages();
 
@@ -214,7 +243,7 @@ export class PatientDetail {
     const value = this.appointmentForm.getRawValue();
     this.appointmentSubmitting.set(true);
 
-    this.api
+    this.patientsApi
       .createAppointment(this.patientId, {
         starts_at: this.toApiDateTime(value.starts_at),
         ends_at: this.toApiDateTime(value.ends_at),
@@ -229,6 +258,7 @@ export class PatientDetail {
           this.success.set('Termin je sačuvan.');
           this.appointmentSubmitting.set(false);
           this.appointmentForm.reset();
+          this.activeModal.set(null);
           this.loadPatient(false);
         },
         error: (error: HttpErrorResponse) => {
@@ -247,18 +277,25 @@ export class PatientDetail {
     }
 
     const value = this.interventionForm.getRawValue();
+    const appointmentId = this.toNumberOrNull(value.appointment_id);
+
+    if (appointmentId && !this.appointments().some((appointment) => appointment.id === appointmentId)) {
+      this.formError.set('Izabrani termin više nije dostupan. Otvorite formu ponovo i izaberite drugi termin.');
+      return;
+    }
+
     this.interventionSubmitting.set(true);
 
-    this.api
+    this.patientsApi
       .createIntervention(this.patientId, {
         title: value.title ?? '',
         description: this.emptyToNull(value.description),
         next_step: this.emptyToNull(value.next_step),
-        intervention_date: value.intervention_date ?? '',
-        appointment_id: this.toNumberOrNull(value.appointment_id),
+        intervention_date: toApiDate(value.intervention_date),
+        appointment_id: appointmentId,
         performed_by_user_id: this.toNumberOrNull(value.performed_by_user_id),
         assigned_to_user_id: this.toNumberOrNull(value.assigned_to_user_id),
-        task_due_date: this.emptyToNull(value.task_due_date),
+        task_due_date: this.emptyToNull(toApiDate(value.task_due_date)),
         total_cost: Number(value.total_cost ?? 0),
         paid_amount: Number(value.paid_amount ?? 0),
         reminder_staff_at: this.toApiDateTimeOrNull(value.reminder_staff_at),
@@ -269,6 +306,7 @@ export class PatientDetail {
           this.success.set('Intervencija je sačuvana.');
           this.interventionSubmitting.set(false);
           this.interventionForm.reset({ total_cost: 0, paid_amount: 0 });
+          this.activeModal.set(null);
           this.loadPatient(false);
         },
         error: (error: HttpErrorResponse) => {
@@ -289,10 +327,10 @@ export class PatientDetail {
     const value = this.taskForm.getRawValue();
     this.taskSubmitting.set(true);
 
-    this.api
+    this.patientsApi
       .createPatientTask(this.patientId, {
         description: value.description ?? '',
-        due_date: this.emptyToNull(value.due_date),
+        due_date: this.emptyToNull(toApiDate(value.due_date)),
         assigned_to_user_id: this.toNumberOrNull(value.assigned_to_user_id),
       })
       .subscribe({
@@ -300,6 +338,7 @@ export class PatientDetail {
           this.success.set('Zadatak je sačuvan.');
           this.taskSubmitting.set(false);
           this.taskForm.reset();
+          this.activeModal.set(null);
           this.loadPatient(false);
         },
         error: (error: HttpErrorResponse) => {
@@ -320,7 +359,7 @@ export class PatientDetail {
     const value = this.statusForm.getRawValue();
     this.statusSubmitting.set(true);
 
-    this.api
+    this.patientsApi
       .updatePatientStatus(this.patientId, {
         manual_status: value.manual_status as 'active' | 'inactive' | 'transferred' | 'completed',
         manual_status_reason: this.emptyToNull(value.manual_status_reason),
@@ -329,6 +368,7 @@ export class PatientDetail {
         next: () => {
           this.success.set('Stanje pacijenta je sačuvano.');
           this.statusSubmitting.set(false);
+          this.activeModal.set(null);
           this.loadPatient(false);
         },
         error: (error: HttpErrorResponse) => {
@@ -342,7 +382,7 @@ export class PatientDetail {
     this.clearMessages();
     this.completingTaskId.set(taskId);
 
-    this.api.completePatientTask(this.patientId, taskId).subscribe({
+    this.patientsApi.completePatientTask(this.patientId, taskId).subscribe({
       next: () => {
         this.success.set('Zadatak je završen.');
         this.completingTaskId.set(null);
@@ -368,13 +408,9 @@ export class PatientDetail {
 
     this.error.set('');
 
-    this.api.getPatient(this.patientId).subscribe({
+    this.patientsApi.getPatient(this.patientId).subscribe({
       next: (patient) => {
-        this.patient.set(patient);
-        this.statusForm.patchValue({
-          manual_status: patient.manual_status ?? 'active',
-          manual_status_reason: patient.manual_status_reason ?? '',
-        });
+        this.setPatient(patient);
         this.loading.set(false);
       },
       error: () => {
@@ -384,10 +420,33 @@ export class PatientDetail {
     });
   }
 
+  private openInterventionModal(): void {
+    this.interventionForm.patchValue({ appointment_id: '' });
+
+    this.patientsApi.getPatient(this.patientId).subscribe({
+      next: (patient) => {
+        this.setPatient(patient);
+        this.activeModal.set('intervention');
+      },
+      error: () => {
+        this.formError.set('Termini trenutno nisu dostupni.');
+        this.activeModal.set('intervention');
+      },
+    });
+  }
+
+  private setPatient(patient: Patient): void {
+    this.patient.set(patient);
+    this.statusForm.patchValue({
+      manual_status: patient.manual_status ?? 'active',
+      manual_status_reason: patient.manual_status_reason ?? '',
+    });
+  }
+
   private loadStaff(): void {
-    this.api.getStaff().subscribe({
+    this.patientsApi.getStaff().subscribe({
       next: (response) => {
-        this.staff.set(this.unwrapCollection(response));
+        this.staff.set(unwrapCollection(response));
       },
       error: () => {
         this.staff.set([]);
@@ -401,10 +460,23 @@ export class PatientDetail {
     this.validationErrors.set([]);
   }
 
+  private resetModalForms(): void {
+    this.appointmentForm.reset();
+    this.interventionForm.reset({ total_cost: 0, paid_amount: 0 });
+    this.taskForm.reset();
+
+    const patient = this.patient();
+    this.statusForm.reset({
+      manual_status: patient?.manual_status ?? 'active',
+      manual_status_reason: patient?.manual_status_reason ?? '',
+    });
+    this.validationErrors.set([]);
+  }
+
   private handleFormError(error: HttpErrorResponse, fallback: string): void {
-    const response = error.error as { message?: string; errors?: Record<string, string[]> } | null;
-    this.formError.set(response?.message || fallback);
-    this.validationErrors.set(response?.errors ? Object.values(response.errors).flat() : []);
+    const validationErrors = extractValidationErrors(error);
+    this.formError.set(validationErrors[0] || fallback);
+    this.validationErrors.set(validationErrors);
   }
 
   private emptyToNull(value: string | null | undefined): string | null {
@@ -413,7 +485,7 @@ export class PatientDetail {
   }
 
   private toApiDateTime(value: string | null | undefined): string {
-    return (value ?? '').replace('T', ' ');
+    return formatToApiDateTime(value);
   }
 
   private toApiDateTimeOrNull(value: string | null | undefined): string | null {
@@ -429,15 +501,7 @@ export class PatientDetail {
     return Number(value);
   }
 
-  private unwrapCollection<T>(response: CollectionResponse<T>): T[] {
-    if (Array.isArray(response)) {
-      return response;
-    }
-
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-
-    return response.data.data;
+  private truncateLabel(value: string, maxLength: number): string {
+    return value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
   }
 }

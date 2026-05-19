@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
-import { AdminCompanyDetail as AdminCompanyDetailModel, Api } from '../../core/services/api';
+import { AdminCompanyDetail as AdminCompanyDetailModel } from '../../core/models/api.models';
+import { AdminApi } from '../../core/services/admin-api.service';
+import { formatDate } from '../../core/utils/formatters';
 import { roleLabel, statusLabel } from '../../core/utils/role-label';
 
 @Component({
@@ -12,11 +14,12 @@ import { roleLabel, statusLabel } from '../../core/utils/role-label';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminCompanyDetail {
-  private readonly api = inject(Api);
+  private readonly adminApi = inject(AdminApi);
   private readonly route = inject(ActivatedRoute);
 
   protected readonly roleLabel = roleLabel;
   protected readonly statusLabel = statusLabel;
+  protected readonly formatDate = formatDate;
 
   protected readonly company = signal<AdminCompanyDetailModel | null>(null);
   protected readonly loading = signal(true);
@@ -38,20 +41,6 @@ export class AdminCompanyDetail {
 
   constructor() {
     this.loadCompany();
-  }
-
-  protected formatDate(value: string | null | undefined): string {
-    if (!value) {
-      return '-';
-    }
-
-    return new Intl.DateTimeFormat('sr-RS', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: value.includes('T') ? '2-digit' : undefined,
-      minute: value.includes('T') ? '2-digit' : undefined,
-    }).format(new Date(value));
   }
 
   protected ownerName(createdBy: AdminCompanyDetailModel['created_by']): string {
@@ -76,7 +65,7 @@ export class AdminCompanyDetail {
     this.success.set('');
     this.error.set('');
 
-    this.api.deleteAdminInvite(invite.id).subscribe({
+    this.adminApi.deleteAdminInvite(invite.id).subscribe({
       next: () => {
         this.success.set('Pozivnica je obrisana.');
         this.company.update((company) =>
@@ -106,7 +95,7 @@ export class AdminCompanyDetail {
     this.loading.set(true);
     this.error.set('');
 
-    this.api.getAdminCompany(companyId).subscribe({
+    this.adminApi.getAdminCompany(companyId).subscribe({
       next: (company) => {
         this.company.set(company);
         this.loading.set(false);
