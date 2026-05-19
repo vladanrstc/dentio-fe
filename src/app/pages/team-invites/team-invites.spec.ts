@@ -3,7 +3,7 @@ import { By } from '@angular/platform-browser';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Auth } from '../../core/services/auth';
+import { AuthStore } from '../../core/state/auth.store';
 import { TeamApi } from '../../core/services/team-api.service';
 import { TeamInvites } from './team-invites';
 
@@ -37,9 +37,9 @@ describe('TeamInvites', () => {
       providers: [
         { provide: TeamApi, useValue: teamApi },
         {
-          provide: Auth,
+          provide: AuthStore,
           useValue: {
-            currentUser: () => ({ id: 1, company_id: 1, name: 'Owner', email: 'owner@test.rs', role: 'company_admin' }),
+            isCompanyAdmin: () => true,
           },
         },
       ],

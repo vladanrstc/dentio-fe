@@ -19,8 +19,8 @@
   <section class="main-area">
     <header class="topbar">
       <div>
-        <strong>{{ user?.name || 'Platform administrator' }}</strong>
-        <span>{{ user?.email || 'Superadmin nalog' }}</span>
+        <strong>{{ user()?.name || 'Platform administrator' }}</strong>
+        <span>{{ user()?.email || 'Superadmin nalog' }}</span>
       </div>
 
       <button type="button" (click)="logout()">Odjavi se</button>

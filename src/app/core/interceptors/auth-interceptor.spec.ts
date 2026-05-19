@@ -4,23 +4,32 @@ import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { AuthStore } from '../state/auth.store';
 import { authInterceptor } from './auth-interceptor';
 
 describe('authInterceptor', () => {
   let router: { navigate: ReturnType<typeof vi.fn> };
+  let authStore: { token: ReturnType<typeof vi.fn>; clearAuth: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
     router = { navigate: vi.fn() };
+    authStore = {
+      token: vi.fn(() => null),
+      clearAuth: vi.fn(),
+    };
 
     TestBed.configureTestingModule({
-      providers: [{ provide: Router, useValue: router }],
+      providers: [
+        { provide: Router, useValue: router },
+        { provide: AuthStore, useValue: authStore },
+      ],
     });
   });
 
   it('dodaje Authorization header kada postoji token', () => {
-    localStorage.setItem('dentio_token', 'abc');
+    authStore.token.mockReturnValue('abc');
 
     const next: HttpHandlerFn = vi.fn((request: HttpRequest<unknown>) => {
       expect(request.headers.get('Authorization')).toBe('Bearer abc');
@@ -35,9 +44,8 @@ describe('authInterceptor', () => {
     expect(next).toHaveBeenCalledOnce();
   });
 
-  it('na 401 briše sesiju i preusmerava na login', () => {
-    localStorage.setItem('dentio_token', 'abc');
-    localStorage.setItem('dentio_user', '{"id":1}');
+  it('na 401 cisti sesiju i preusmerava na login', () => {
+    authStore.token.mockReturnValue('abc');
     const error = new HttpErrorResponse({ status: 401 });
     const next: HttpHandlerFn = vi.fn(() => throwError(() => error));
 
@@ -47,12 +55,11 @@ describe('authInterceptor', () => {
       });
     });
 
-    expect(localStorage.getItem('dentio_token')).toBeNull();
-    expect(localStorage.getItem('dentio_user')).toBeNull();
+    expect(authStore.clearAuth).toHaveBeenCalled();
     expect(router.navigate).toHaveBeenCalledWith(['/login']);
   });
 
-  it('na 403 postavlja korisničku poruku bez tehničkog teksta', () => {
+  it('na 403 postavlja korisnicku poruku bez tehnickog teksta', () => {
     const error = new HttpErrorResponse({ status: 403 });
     const next: HttpHandlerFn = vi.fn(() => throwError(() => error));
 

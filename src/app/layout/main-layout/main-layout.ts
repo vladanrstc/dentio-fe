@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
-import { Auth } from '../../core/services/auth';
+import { AuthStore } from '../../core/state/auth.store';
 
 @Component({
   selector: 'app-main-layout',
@@ -11,15 +11,15 @@ import { Auth } from '../../core/services/auth';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MainLayout {
-  private readonly auth = inject(Auth);
+  private readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);
 
-  protected readonly user = this.auth.currentUser();
-  protected readonly canViewTeam = this.auth.isCompanyUser();
-  protected readonly canManageInvites = this.user?.role === 'company_admin';
+  protected readonly user = this.authStore.user;
+  protected readonly canViewTeam = this.authStore.isCompanyUser;
+  protected readonly canManageInvites = this.authStore.isCompanyAdmin;
 
   logout(): void {
-    this.auth.logout().subscribe({
+    this.authStore.logout().subscribe({
       next: () => {
         this.router.navigate(['/login']);
       },
