@@ -87,13 +87,6 @@ export const AuthStore = signalStore(
         setTokenState(token);
       },
 
-      setUser(user: AuthUser | null): void {
-        setUserState(user);
-      },
-
-      setLoading(value: boolean): void {
-        patchState(store, { loading: value });
-      },
 
       setAuth(token: string, user: AuthUser | null): void {
         setTokenState(token);

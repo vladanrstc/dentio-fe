@@ -13,8 +13,6 @@ export class Auth {
   private readonly store = inject(AuthStore);
 
   login(email: string, password: string): Observable<LoginResponse> {
-    this.store.clearAuth();
-
     return this.api.login(email, password).pipe(
       switchMap((response) => {
         if (response.user) {

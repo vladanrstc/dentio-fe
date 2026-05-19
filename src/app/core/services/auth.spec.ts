@@ -60,10 +60,10 @@ describe('Auth', () => {
     expect(service).toBeTruthy();
   });
 
-  it('login cisti staru sesiju i upisuje novu u AuthStore', () => {
+  it('login upisuje novu sesiju u AuthStore', () => {
     service.login('owner@test.rs', 'Password123!').subscribe();
 
-    expect(authStore.clearAuth).toHaveBeenCalled();
+    expect(authStore.clearAuth).not.toHaveBeenCalled();
     expect(authApi.login).toHaveBeenCalledWith('owner@test.rs', 'Password123!');
     expect(authStore.setAuth).toHaveBeenCalledWith('token', user);
   });
