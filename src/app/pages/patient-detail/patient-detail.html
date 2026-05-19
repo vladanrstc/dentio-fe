@@ -140,7 +140,7 @@
           @for (appointment of appointments(); track appointment.id) {
             <button type="button" class="list-row appointment-row" (click)="openAppointmentDetails(appointment)">
               <div>
-                <strong>{{ appointmentTitle(appointment) }}</strong>
+                <strong [title]="appointmentFullTitle(appointment)">{{ appointmentTitle(appointment) }}</strong>
                 <span>{{ appointmentRange(appointment) }}</span>
               </div>
               <span>{{ staffName(appointmentStaff(appointment)) }}</span>
@@ -199,7 +199,8 @@
     </article>
   </section>
 
-  @if (activeModal() === 'appointment') {
+  @switch (activeModal()) {
+    @case ('appointment') {
     <section class="modal-backdrop" aria-label="Zatvori modal" (click)="closeModal()">
       <article class="card modal-card form-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
         <div class="modal-title">
@@ -281,9 +282,9 @@
         </form>
       </article>
     </section>
-  }
+    }
 
-  @if (activeModal() === 'intervention') {
+    @case ('intervention') {
     <section class="modal-backdrop" aria-label="Zatvori modal" (click)="closeModal()">
       <article class="card modal-card form-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
         <div class="modal-title">
@@ -326,7 +327,7 @@
               <select formControlName="appointment_id">
                 <option value="">Bez povezanog termina</option>
                 @for (appointment of appointments(); track appointment.id) {
-                  <option [value]="appointment.id">{{ appointmentTitle(appointment) }} - {{ appointmentTime(appointment) }}</option>
+                  <option [value]="appointment.id" [title]="appointmentFullTitle(appointment)">{{ appointmentTitle(appointment) }} - {{ appointmentTime(appointment) }}</option>
                 }
               </select>
             </label>
@@ -390,9 +391,9 @@
         </form>
       </article>
     </section>
-  }
+    }
 
-  @if (activeModal() === 'task') {
+    @case ('task') {
     <section class="modal-backdrop" aria-label="Zatvori modal" (click)="closeModal()">
       <article class="card modal-card form-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
         <div class="modal-title">
@@ -447,9 +448,9 @@
         </form>
       </article>
     </section>
-  }
+    }
 
-  @if (activeModal() === 'status') {
+    @case ('status') {
     <section class="modal-backdrop" aria-label="Zatvori modal" (click)="closeModal()">
       <article class="card modal-card form-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
         <div class="modal-title">
@@ -493,6 +494,7 @@
         </form>
       </article>
     </section>
+    }
   }
 
   @if (selectedAppointment(); as appointment) {

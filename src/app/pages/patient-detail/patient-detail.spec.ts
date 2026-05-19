@@ -160,6 +160,21 @@ describe('PatientDetail', () => {
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Dr Petar Petrović');
   });
 
+  it('skrati appointment label kada je fallback duga napomena', () => {
+    const testComponent = component as unknown as {
+      appointmentTitle(appointment: { id: number; notes: string }): string;
+    };
+    const longNotes = 'Kontrola posle intervencije sa veoma dugom napomenom koja ne treba da razvuce label u listi';
+
+    const label = testComponent.appointmentTitle({
+      id: 99,
+      notes: longNotes,
+    });
+
+    expect(label.length).toBeLessThanOrEqual(60);
+    expect(label).toContain('…');
+  });
+
   it('zadatak prikazuje zaduženog člana osoblja', () => {
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Zadužen: Dr Petar Petrović');
   });

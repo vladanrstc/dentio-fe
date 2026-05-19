@@ -18,6 +18,7 @@ import { SerbianDatePicker } from '../../shared/components/serbian-date-picker/s
 
 type FormName = 'appointment' | 'intervention' | 'task' | 'status' | 'completeTask';
 type PatientDetailModal = 'appointment' | 'intervention' | 'task' | 'status';
+const APPOINTMENT_LABEL_MAX_LENGTH = 60;
 
 @Component({
   selector: 'app-patient-detail',
@@ -127,6 +128,10 @@ export class PatientDetail {
   }
 
   protected appointmentTitle(appointment: Appointment): string {
+    return this.truncateLabel(this.appointmentFullTitle(appointment), APPOINTMENT_LABEL_MAX_LENGTH);
+  }
+
+  protected appointmentFullTitle(appointment: Appointment): string {
     const typeLabel = this.appointmentTypeOptions.find((type) => type.value === appointment.type)?.label;
     return typeLabel || appointment.type || appointment.notes || appointment.note || appointment.patient_name || 'Termin';
   }
@@ -494,5 +499,9 @@ export class PatientDetail {
     }
 
     return Number(value);
+  }
+
+  private truncateLabel(value: string, maxLength: number): string {
+    return value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
   }
 }
