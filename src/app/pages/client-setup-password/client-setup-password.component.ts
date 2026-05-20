@@ -11,8 +11,8 @@ import { extractValidationErrors } from '../../core/utils/http-helpers';
 @Component({
   selector: 'app-client-setup-password',
   imports: [ReactiveFormsModule, RouterLink],
-  templateUrl: './client-setup-password.html',
-  styleUrl: './client-setup-password.css',
+  templateUrl: './client-setup-password.component.html',
+  styleUrl: './client-setup-password.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ClientSetupPassword {

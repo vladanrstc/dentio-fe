@@ -12,11 +12,15 @@ export const companyGuard: CanActivateFn = () => {
     return router.createUrlTree(['/login']);
   }
 
-  if (!authStore.hasUser()) {
+  if (!authStore.hasPrincipal()) {
     return authStore.checkAuth().pipe(
       map(() => {
         if (!authStore.isAuthenticated()) {
           return router.createUrlTree(['/login']);
+        }
+
+        if (authStore.isClientPatient()) {
+          return router.createUrlTree(['/client/dashboard']);
         }
 
         if (authStore.isPlatformAdmin()) {
@@ -30,6 +34,10 @@ export const companyGuard: CanActivateFn = () => {
 
   if (authStore.isPlatformAdmin()) {
     return router.createUrlTree(['/admin/dashboard']);
+  }
+
+  if (authStore.isClientPatient()) {
+    return router.createUrlTree(['/client/dashboard']);
   }
 
   if (authStore.isCompanyUser()) {

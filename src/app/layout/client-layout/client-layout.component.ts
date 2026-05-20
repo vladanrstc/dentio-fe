@@ -1,21 +1,21 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 
-import { ClientAuthStore } from '../../core/state/client-auth.store';
+import { AuthStore } from '../../core/state/auth.store';
 
 @Component({
   selector: 'app-client-layout',
   imports: [RouterOutlet],
-  templateUrl: './client-layout.html',
-  styleUrl: './client-layout.css',
+  templateUrl: './client-layout.component.html',
+  styleUrl: './client-layout.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ClientLayout {
-  protected readonly clientAuthStore = inject(ClientAuthStore);
+  protected readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);
 
   protected logout(): void {
-    this.clientAuthStore.logout().subscribe(() => {
+    this.authStore.logout().subscribe(() => {
       this.router.navigate(['/client/login']);
     });
   }

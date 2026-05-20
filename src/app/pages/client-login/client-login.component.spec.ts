@@ -5,13 +5,13 @@ import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ClientPortalApi } from '../../core/services/client-portal-api.service';
-import { ClientAuthStore } from '../../core/state/client-auth.store';
-import { ClientLogin } from './client-login';
+import { AuthStore } from '../../core/state/auth.store';
+import { ClientLogin } from './client-login.component';
 
 describe('ClientLogin', () => {
   let fixture: ComponentFixture<ClientLogin>;
   let clientApi: { login: ReturnType<typeof vi.fn> };
-  let clientAuthStore: { setAuth: ReturnType<typeof vi.fn> };
+  let authStore: { setClientAuth: ReturnType<typeof vi.fn> };
   let router: { navigate: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
@@ -30,8 +30,8 @@ describe('ClientLogin', () => {
         }),
       ),
     };
-    clientAuthStore = {
-      setAuth: vi.fn(),
+    authStore = {
+      setClientAuth: vi.fn(),
     };
     router = {
       navigate: vi.fn(),
@@ -41,7 +41,7 @@ describe('ClientLogin', () => {
       imports: [ClientLogin],
       providers: [
         { provide: ClientPortalApi, useValue: clientApi },
-        { provide: ClientAuthStore, useValue: clientAuthStore },
+        { provide: AuthStore, useValue: authStore },
         { provide: Router, useValue: router },
       ],
     }).compileComponents();
@@ -58,7 +58,7 @@ describe('ClientLogin', () => {
     fixture.detectChanges();
 
     expect(clientApi.login).toHaveBeenCalledWith('pacijent@test.rs', 'Password123!');
-    expect(clientAuthStore.setAuth).toHaveBeenCalledWith(
+    expect(authStore.setClientAuth).toHaveBeenCalledWith(
       'client-token',
       expect.objectContaining({ id: 7, email: 'pacijent@test.rs' }),
     );

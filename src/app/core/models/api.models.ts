@@ -6,6 +6,9 @@ export type AuthUser = {
   role: string;
 };
 
+export type AuthType = 'user' | 'client';
+export type AuthRole = 'platform_admin' | 'company_admin' | 'dentist' | 'nurse' | 'client' | string;
+
 export type LoginResponse = {
   token: string;
   user: AuthUser;

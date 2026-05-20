@@ -5,13 +5,11 @@ import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthStore } from '../state/auth.store';
-import { ClientAuthStore } from '../state/client-auth.store';
 import { authInterceptor } from './auth-interceptor';
 
 describe('authInterceptor', () => {
   let router: { navigate: ReturnType<typeof vi.fn> };
   let authStore: { token: ReturnType<typeof vi.fn>; clearAuth: ReturnType<typeof vi.fn> };
-  let clientAuthStore: { token: ReturnType<typeof vi.fn>; clearAuth: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     localStorage.clear();
@@ -21,16 +19,11 @@ describe('authInterceptor', () => {
       token: vi.fn(() => null),
       clearAuth: vi.fn(),
     };
-    clientAuthStore = {
-      token: vi.fn(() => null),
-      clearAuth: vi.fn(),
-    };
 
     TestBed.configureTestingModule({
       providers: [
         { provide: Router, useValue: router },
         { provide: AuthStore, useValue: authStore },
-        { provide: ClientAuthStore, useValue: clientAuthStore },
       ],
     });
   });
@@ -51,12 +44,11 @@ describe('authInterceptor', () => {
     expect(next).toHaveBeenCalledOnce();
   });
 
-  it('za client rute koristi client token umesto company tokena', () => {
-    authStore.token.mockReturnValue('company-token');
-    clientAuthStore.token.mockReturnValue('client-token');
+  it('za client rute koristi isti jedinstveni auth token', () => {
+    authStore.token.mockReturnValue('shared-token');
 
     const next: HttpHandlerFn = vi.fn((request: HttpRequest<unknown>) => {
-      expect(request.headers.get('Authorization')).toBe('Bearer client-token');
+      expect(request.headers.get('Authorization')).toBe('Bearer shared-token');
       return of(new HttpResponse({ status: 200 }));
     });
 
@@ -83,7 +75,7 @@ describe('authInterceptor', () => {
   });
 
   it('na 401 za client rutu cisti client sesiju i preusmerava na client login', () => {
-    clientAuthStore.token.mockReturnValue('client-token');
+    authStore.token.mockReturnValue('client-token');
     const error = new HttpErrorResponse({ status: 401 });
     const next: HttpHandlerFn = vi.fn(() => throwError(() => error));
 
@@ -93,8 +85,7 @@ describe('authInterceptor', () => {
       });
     });
 
-    expect(clientAuthStore.clearAuth).toHaveBeenCalled();
-    expect(authStore.clearAuth).not.toHaveBeenCalled();
+    expect(authStore.clearAuth).toHaveBeenCalled();
     expect(router.navigate).toHaveBeenCalledWith(['/client/login']);
   });
 

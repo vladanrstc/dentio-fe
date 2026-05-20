@@ -11,8 +11,6 @@ import {
   ClientDashboardData,
   ClientDashboardResponse,
   ClientLoginResponse,
-  ClientMeResponse,
-  ClientPatient,
   CollectionResponse,
   Intervention,
   PatientPortalInviteData,
@@ -56,16 +54,6 @@ export class ClientPortalApi {
     };
 
     return this.http.post<AcceptPatientPortalInviteResponse>(`${this.baseUrl}/client/invites/${token}/accept`, payload);
-  }
-
-  logout(): Observable<unknown> {
-    return this.http.post(`${this.baseUrl}/client/logout`, {});
-  }
-
-  me(): Observable<ClientPatient> {
-    return this.http
-      .get<ClientMeResponse>(`${this.baseUrl}/client/me`)
-      .pipe(map((response): ClientPatient => unwrapItem(response)));
   }
 
   dashboard(): Observable<ClientDashboardData> {

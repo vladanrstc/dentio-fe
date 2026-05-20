@@ -24,7 +24,7 @@ export class Auth {
 
         return this.store.checkAuth().pipe(
           switchMap((user) => {
-            if (!user) {
+            if (!user || !('role' in user)) {
               return throwError(() => new Error('Current user is not available.'));
             }
 

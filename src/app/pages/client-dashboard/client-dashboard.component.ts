@@ -2,19 +2,19 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 
 import { ActiveItem, Appointment, ClientDashboardData, Intervention, StaffMember } from '../../core/models/api.models';
 import { ClientPortalApi } from '../../core/services/client-portal-api.service';
-import { ClientAuthStore } from '../../core/state/client-auth.store';
+import { AuthStore } from '../../core/state/auth.store';
 import { appointmentTitle } from '../../core/utils/appointment-labels';
 import { formatDate, formatMoney } from '../../core/utils/formatters';
 
 @Component({
   selector: 'app-client-dashboard',
-  templateUrl: './client-dashboard.html',
-  styleUrl: './client-dashboard.css',
+  templateUrl: './client-dashboard.component.html',
+  styleUrl: './client-dashboard.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ClientDashboard {
   private readonly clientApi = inject(ClientPortalApi);
-  protected readonly clientAuthStore = inject(ClientAuthStore);
+  protected readonly authStore = inject(AuthStore);
 
   protected readonly dashboard = signal<ClientDashboardData | null>(null);
   protected readonly loading = signal(true);
@@ -43,7 +43,7 @@ export class ClientDashboard {
   }
 
   protected patientName(): string {
-    const patient = this.dashboard()?.patient ?? this.clientAuthStore.patient();
+    const patient = this.dashboard()?.patient ?? this.authStore.patient();
     return patient?.full_name ?? (`${patient?.first_name ?? ''} ${patient?.last_name ?? ''}`.trim() || 'Pacijent');
   }
 

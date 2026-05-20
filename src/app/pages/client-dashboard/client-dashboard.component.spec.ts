@@ -3,13 +3,13 @@ import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ClientPortalApi } from '../../core/services/client-portal-api.service';
-import { ClientAuthStore } from '../../core/state/client-auth.store';
-import { ClientDashboard } from './client-dashboard';
+import { AuthStore } from '../../core/state/auth.store';
+import { ClientDashboard } from './client-dashboard.component';
 
 describe('ClientDashboard', () => {
   let fixture: ComponentFixture<ClientDashboard>;
   let clientApi: { dashboard: ReturnType<typeof vi.fn> };
-  let clientAuthStore: { patient: ReturnType<typeof vi.fn> };
+  let authStore: { patient: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     clientApi = {
@@ -31,7 +31,7 @@ describe('ClientDashboard', () => {
         }),
       ),
     };
-    clientAuthStore = {
+    authStore = {
       patient: vi.fn(() => null),
     };
 
@@ -39,7 +39,7 @@ describe('ClientDashboard', () => {
       imports: [ClientDashboard],
       providers: [
         { provide: ClientPortalApi, useValue: clientApi },
-        { provide: ClientAuthStore, useValue: clientAuthStore },
+        { provide: AuthStore, useValue: authStore },
       ],
     }).compileComponents();
 

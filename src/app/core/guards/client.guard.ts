@@ -2,27 +2,27 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { map } from 'rxjs';
 
-import { ClientAuthStore } from '../state/client-auth.store';
+import { AuthStore } from '../state/auth.store';
 
 export const clientGuard: CanActivateFn = () => {
-  const clientAuthStore = inject(ClientAuthStore);
+  const authStore = inject(AuthStore);
   const router = inject(Router);
 
-  if (!clientAuthStore.isAuthenticated()) {
+  if (!authStore.isAuthenticated()) {
     return router.createUrlTree(['/client/login']);
   }
 
-  if (!clientAuthStore.hasPatient()) {
-    return clientAuthStore.checkAuth().pipe(
+  if (!authStore.hasPrincipal()) {
+    return authStore.checkAuth().pipe(
       map(() => {
-        if (!clientAuthStore.isAuthenticated()) {
+        if (!authStore.isAuthenticated()) {
           return router.createUrlTree(['/client/login']);
         }
 
-        return clientAuthStore.hasPatient() ? true : router.createUrlTree(['/client/login']);
+        return authStore.isClientPatient() ? true : router.createUrlTree(['/login']);
       }),
     );
   }
 
-  return true;
+  return authStore.isClientPatient() ? true : router.createUrlTree(['/login']);
 };

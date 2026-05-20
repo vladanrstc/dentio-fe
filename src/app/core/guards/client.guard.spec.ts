@@ -3,21 +3,23 @@ import { Router } from '@angular/router';
 import { Observable, firstValueFrom, of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ClientAuthStore } from '../state/client-auth.store';
+import { AuthStore } from '../state/auth.store';
 import { clientGuard } from './client.guard';
 
 describe('clientGuard', () => {
-  let clientAuthStore: {
+  let authStore: {
     isAuthenticated: ReturnType<typeof vi.fn>;
-    hasPatient: ReturnType<typeof vi.fn>;
+    hasPrincipal: ReturnType<typeof vi.fn>;
+    isClientPatient: ReturnType<typeof vi.fn>;
     checkAuth: ReturnType<typeof vi.fn>;
   };
   let router: { createUrlTree: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
-    clientAuthStore = {
+    authStore = {
       isAuthenticated: vi.fn(() => true),
-      hasPatient: vi.fn(() => true),
+      hasPrincipal: vi.fn(() => true),
+      isClientPatient: vi.fn(() => true),
       checkAuth: vi.fn(() => of({ id: 7 })),
     };
     router = {
@@ -26,7 +28,7 @@ describe('clientGuard', () => {
 
     TestBed.configureTestingModule({
       providers: [
-        { provide: ClientAuthStore, useValue: clientAuthStore },
+        { provide: AuthStore, useValue: authStore },
         { provide: Router, useValue: router },
       ],
     });
@@ -39,7 +41,7 @@ describe('clientGuard', () => {
   });
 
   it('neulogovanog pacijenta salje na client login', () => {
-    clientAuthStore.isAuthenticated.mockReturnValue(false);
+    authStore.isAuthenticated.mockReturnValue(false);
 
     const result = TestBed.runInInjectionContext(() => clientGuard({} as never, {} as never));
 
@@ -47,12 +49,20 @@ describe('clientGuard', () => {
   });
 
   it('ceka /client/me proveru ako token postoji, ali pacijent nije ucitan', async () => {
-    clientAuthStore.hasPatient.mockReturnValueOnce(false).mockReturnValue(true);
-    clientAuthStore.checkAuth.mockReturnValue(of({ id: 7 }));
+    authStore.hasPrincipal.mockReturnValueOnce(false).mockReturnValue(true);
+    authStore.checkAuth.mockReturnValue(of({ id: 7 }));
 
     const result = TestBed.runInInjectionContext(() => clientGuard({} as never, {} as never));
 
     await expect(firstValueFrom(result as Observable<unknown>)).resolves.toBe(true);
-    expect(clientAuthStore.checkAuth).toHaveBeenCalled();
+    expect(authStore.checkAuth).toHaveBeenCalled();
+  });
+
+  it('company korisnika ne pusta na client rute', () => {
+    authStore.isClientPatient.mockReturnValue(false);
+
+    const result = TestBed.runInInjectionContext(() => clientGuard({} as never, {} as never));
+
+    expect(result).toEqual({ commands: ['/login'] });
   });
 });

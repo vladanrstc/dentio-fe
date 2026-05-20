@@ -7,7 +7,7 @@ import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ClientPortalApi } from '../../core/services/client-portal-api.service';
-import { ClientSetupPassword } from './client-setup-password';
+import { ClientSetupPassword } from './client-setup-password.component';
 
 describe('ClientSetupPassword', () => {
   let fixture: ComponentFixture<ClientSetupPassword>;

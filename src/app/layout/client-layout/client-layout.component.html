@@ -6,8 +6,8 @@
     </div>
 
     <div class="client-user">
-      <span>{{ clientAuthStore.patientName() }}</span>
-      <button type="button" (click)="logout()" [disabled]="clientAuthStore.loading()">Odjavi se</button>
+      <span>{{ authStore.principalName() }}</span>
+      <button type="button" (click)="logout()" [disabled]="authStore.loading()">Odjavi se</button>
     </div>
   </header>
 

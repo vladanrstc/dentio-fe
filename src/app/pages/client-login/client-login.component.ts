@@ -3,18 +3,18 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { ClientPortalApi } from '../../core/services/client-portal-api.service';
-import { ClientAuthStore } from '../../core/state/client-auth.store';
+import { AuthStore } from '../../core/state/auth.store';
 
 @Component({
   selector: 'app-client-login',
   imports: [FormsModule],
-  templateUrl: './client-login.html',
-  styleUrl: './client-login.css',
+  templateUrl: './client-login.component.html',
+  styleUrl: './client-login.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ClientLogin {
   private readonly clientApi = inject(ClientPortalApi);
-  private readonly clientAuthStore = inject(ClientAuthStore);
+  private readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);
 
   protected email = '';
@@ -36,7 +36,7 @@ export class ClientLogin {
 
     this.clientApi.login(this.email.trim(), this.password).subscribe({
       next: (response) => {
-        this.clientAuthStore.setAuth(response.data.token, response.data.patient);
+        this.authStore.setClientAuth(response.data.token, response.data.patient);
         this.router.navigate(['/client/dashboard']);
       },
       error: () => {

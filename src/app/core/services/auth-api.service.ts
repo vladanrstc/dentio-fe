@@ -3,7 +3,8 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { AuthUser, LoginResponse, MeResponse } from '../models/api.models';
+import { AuthUser, ClientMeResponse, ClientPatient, LoginResponse, MeResponse } from '../models/api.models';
+import { unwrapItem } from '../utils/http-helpers';
 
 @Injectable({
   providedIn: 'root',
@@ -22,8 +23,18 @@ export class AuthApi {
       .pipe(map((response): AuthUser => this.extractCurrentUser(response)));
   }
 
+  clientMe(): Observable<ClientPatient> {
+    return this.http
+      .get<ClientMeResponse>(`${this.baseUrl}/client/me`)
+      .pipe(map((response): ClientPatient => unwrapItem(response)));
+  }
+
   logout(): Observable<unknown> {
     return this.http.post(`${this.baseUrl}/logout`, {});
+  }
+
+  clientLogout(): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/client/logout`, {});
   }
 
   private extractCurrentUser(response: MeResponse): AuthUser {

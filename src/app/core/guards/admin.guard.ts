@@ -12,11 +12,15 @@ export const adminGuard: CanActivateFn = () => {
     return router.createUrlTree(['/login']);
   }
 
-  if (!authStore.hasUser()) {
+  if (!authStore.hasPrincipal()) {
     return authStore.checkAuth().pipe(
       map(() => {
         if (!authStore.isAuthenticated()) {
           return router.createUrlTree(['/login']);
+        }
+
+        if (authStore.isClientPatient()) {
+          return router.createUrlTree(['/client/dashboard']);
         }
 
         return authStore.isPlatformAdmin() ? true : router.createUrlTree(['/dashboard']);
@@ -26,6 +30,10 @@ export const adminGuard: CanActivateFn = () => {
 
   if (authStore.isPlatformAdmin()) {
     return true;
+  }
+
+  if (authStore.isClientPatient()) {
+    return router.createUrlTree(['/client/dashboard']);
   }
 
   return router.createUrlTree(['/dashboard']);

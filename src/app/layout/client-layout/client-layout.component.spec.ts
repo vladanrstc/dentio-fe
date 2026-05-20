@@ -5,21 +5,21 @@ import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ClientAuthStore } from '../../core/state/client-auth.store';
-import { ClientLayout } from './client-layout';
+import { AuthStore } from '../../core/state/auth.store';
+import { ClientLayout } from './client-layout.component';
 
 describe('ClientLayout', () => {
   let fixture: ComponentFixture<ClientLayout>;
-  let clientAuthStore: {
-    patientName: ReturnType<typeof vi.fn>;
+  let authStore: {
+    principalName: ReturnType<typeof vi.fn>;
     loading: ReturnType<typeof vi.fn>;
     logout: ReturnType<typeof vi.fn>;
   };
   let router: { navigate: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
-    clientAuthStore = {
-      patientName: vi.fn(() => 'Petar Petrovic'),
+    authStore = {
+      principalName: vi.fn(() => 'Petar Petrovic'),
       loading: vi.fn(() => false),
       logout: vi.fn(() => of(null)),
     };
@@ -31,7 +31,7 @@ describe('ClientLayout', () => {
       imports: [ClientLayout],
       providers: [
         provideRouter([]),
-        { provide: ClientAuthStore, useValue: clientAuthStore },
+        { provide: AuthStore, useValue: authStore },
         { provide: Router, useValue: router },
       ],
     }).compileComponents();
@@ -56,7 +56,7 @@ describe('ClientLayout', () => {
 
     logoutButton?.nativeElement.click();
 
-    expect(clientAuthStore.logout).toHaveBeenCalledOnce();
+    expect(authStore.logout).toHaveBeenCalledOnce();
     expect(router.navigate).toHaveBeenCalledWith(['/client/login']);
   });
 });
