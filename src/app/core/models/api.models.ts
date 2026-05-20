@@ -34,6 +34,9 @@ export type Financials = {
 
 export type Appointment = {
   id: number;
+  title?: string | null;
+  name?: string | null;
+  label?: string | null;
   patient_name?: string;
   patient?: {
     first_name?: string;
@@ -300,4 +303,52 @@ export type ReportSubscription = ReportSettingsItem & {
 export type ReportSubscriptionPayload = {
   frequency: ReportFrequency;
   format: ReportFormat;
+};
+
+export type ClientPatient = Patient;
+
+export type ClientLoginResponse = {
+  data: {
+    token: string;
+    patient: ClientPatient;
+  };
+};
+
+export type ClientMeResponse = ClientPatient | { data: ClientPatient };
+
+export type ClientDashboardData = {
+  patient: ClientPatient;
+  appointments: Appointment[];
+  interventions: Intervention[];
+  tasks: ActiveItem[];
+  financials?: Financials | null;
+};
+
+export type ClientDashboardResponse = ClientDashboardData | { data: ClientDashboardData };
+
+export type SendPatientPortalInvitePayload = {
+  email: string;
+};
+
+export type PatientPortalInviteData = {
+  id: number;
+  email: string;
+  expires_at?: string | null;
+  valid: boolean;
+  expired: boolean;
+  accepted: boolean;
+  revoked?: boolean;
+};
+
+export type PatientPortalInviteResponse = PatientPortalInviteData | { data: PatientPortalInviteData };
+
+export type AcceptPatientPortalInvitePayload = {
+  password: string;
+  password_confirmation: string;
+};
+
+export type AcceptPatientPortalInviteResponse = {
+  data: {
+    patient: ClientPatient;
+  };
 };

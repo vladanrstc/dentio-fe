@@ -94,6 +94,27 @@
 
     <article class="card">
       <div class="card-header">
+        <div>
+          <h2>Portal pacijenta</h2>
+          <p>Pošaljite pacijentu pozivnicu za pristup portalu.</p>
+        </div>
+      </div>
+      <form [formGroup]="portalInviteForm" (ngSubmit)="sendPortalInvite()" class="portal-invite-form">
+        <label>
+          Email pacijenta
+          <input type="email" formControlName="email" />
+          @if (portalInviteFieldInvalid('email')) {
+            <span>Unesite validan email pacijenta.</span>
+          }
+        </label>
+        <button type="submit" [disabled]="portalInviteSubmitting()">
+          {{ portalInviteSubmitting() ? 'Slanje...' : 'Pošalji pozivnicu' }}
+        </button>
+      </form>
+    </article>
+
+    <article class="card">
+      <div class="card-header">
         <h2>Stanje pacijenta</h2>
         <button type="button" (click)="openModal('status')">Promena stanja</button>
       </div>

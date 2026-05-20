@@ -13,8 +13,13 @@ import { AdminCompanies } from './pages/admin-companies/admin-companies';
 import { AdminCompanyDetail } from './pages/admin-company-detail/admin-company-detail';
 import { AdminInviteOwner } from './pages/admin-invite-owner/admin-invite-owner';
 import { ReportSettings } from './pages/report-settings/report-settings';
+import { ClientLayout } from './layout/client-layout/client-layout';
+import { ClientLogin } from './pages/client-login/client-login';
+import { ClientDashboard } from './pages/client-dashboard/client-dashboard';
+import { ClientSetupPassword } from './pages/client-setup-password/client-setup-password';
 import { adminGuard } from './core/guards/admin.guard';
 import { companyGuard } from './core/guards/company.guard';
+import { clientGuard } from './core/guards/client.guard';
 
 export const routes: Routes = [
   {
@@ -24,6 +29,42 @@ export const routes: Routes = [
   {
     path: 'invites/accept/:token',
     component: InviteAccept,
+  },
+  {
+    path: 'client/login',
+    component: ClientLogin,
+  },
+  {
+    path: 'client/setup-password',
+    component: ClientSetupPassword,
+  },
+  {
+    path: 'client',
+    component: ClientLayout,
+    canActivate: [clientGuard],
+    children: [
+      {
+        path: 'dashboard',
+        component: ClientDashboard,
+      },
+      {
+        path: 'appointments',
+        component: ClientDashboard,
+      },
+      {
+        path: 'interventions',
+        component: ClientDashboard,
+      },
+      {
+        path: 'tasks',
+        component: ClientDashboard,
+      },
+      {
+        path: '',
+        pathMatch: 'full',
+        redirectTo: 'dashboard',
+      },
+    ],
   },
   {
     path: 'admin',

@@ -1,0 +1,46 @@
+<div class="client-login-page">
+  <form class="client-login-card" (ngSubmit)="submit()">
+    <span class="eyebrow">Portal pacijenta</span>
+    <h1>Dentio</h1>
+    <p>Prijavite se da vidite svoje termine, intervencije i finansijski pregled.</p>
+
+    <label for="client-email">Email</label>
+    <input
+      id="client-email"
+      type="email"
+      name="email"
+      [(ngModel)]="email"
+      (ngModelChange)="clearError()"
+      required
+      email
+      #emailField="ngModel"
+      autocomplete="email"
+    />
+    @if (submitted() && emailField.invalid) {
+      <div class="field-error">Unesite validan email.</div>
+    }
+
+    <label for="client-password">Lozinka</label>
+    <input
+      id="client-password"
+      type="password"
+      name="password"
+      [(ngModel)]="password"
+      (ngModelChange)="clearError()"
+      required
+      #passwordField="ngModel"
+      autocomplete="current-password"
+    />
+    @if (submitted() && passwordField.invalid) {
+      <div class="field-error">Unesite lozinku.</div>
+    }
+
+    @if (error()) {
+      <div class="notice error">{{ error() }}</div>
+    }
+
+    <button type="submit" [disabled]="submitting()">
+      {{ submitting() ? 'Prijava u toku...' : 'Prijavi se' }}
+    </button>
+  </form>
+</div>
