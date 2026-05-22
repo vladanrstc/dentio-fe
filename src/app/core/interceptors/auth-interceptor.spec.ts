@@ -74,7 +74,7 @@ describe('authInterceptor', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/login']);
   });
 
-  it('na 401 za client rutu cisti client sesiju i preusmerava na client login', () => {
+  it('na 401 za client rutu cisti sesiju i preusmerava na login', () => {
     authStore.token.mockReturnValue('client-token');
     const error = new HttpErrorResponse({ status: 401 });
     const next: HttpHandlerFn = vi.fn(() => throwError(() => error));
@@ -86,7 +86,7 @@ describe('authInterceptor', () => {
     });
 
     expect(authStore.clearAuth).toHaveBeenCalled();
-    expect(router.navigate).toHaveBeenCalledWith(['/client/login']);
+    expect(router.navigate).toHaveBeenCalledWith(['/login']);
   });
 
   it('na 403 postavlja korisnicku poruku bez tehnickog teksta', () => {

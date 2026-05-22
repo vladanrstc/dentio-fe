@@ -2,130 +2,94 @@ import { computed, inject } from '@angular/core';
 import { patchState, signalStore, withComputed, withHooks, withMethods, withState } from '@ngrx/signals';
 import { Observable, catchError, finalize, map, of, tap } from 'rxjs';
 
-import { AuthType, AuthUser, ClientPatient } from '../models/api.models';
+import { AuthRole } from '../models/auth.models';
+import { AuthUser } from '../models/api.models';
 import { AuthApi } from '../services/auth-api.service';
 
 const TOKEN_KEY = 'dentio_token';
-const AUTH_TYPE_KEY = 'dentio_auth_type';
-const PRINCIPAL_KEY = 'dentio_principal';
-const LEGACY_USER_KEY = 'dentio_user';
-const LEGACY_CLIENT_TOKEN_KEY = 'dentio_client_token';
-const LEGACY_CLIENT_PATIENT_KEY = 'dentio_client_patient';
+const USER_KEY = 'dentio_user';
 
 type AuthState = {
   token: string | null;
-  authType: AuthType | null;
   user: AuthUser | null;
-  patient: ClientPatient | null;
   loading: boolean;
 };
 
 const initialState: AuthState = {
   token: null,
-  authType: null,
   user: null,
-  patient: null,
   loading: false,
 };
 
 export const AuthStore = signalStore(
   { providedIn: 'root' },
   withState(initialState),
-  withComputed(({ token, authType, user, patient }) => ({
+  withComputed(({ token, user }) => ({
     isAuthenticated: computed(() => !!token()),
     hasUser: computed(() => !!user()),
-    hasPatient: computed(() => !!patient()),
-    hasPrincipal: computed(() => !!user() || !!patient()),
-    role: computed(() => (authType() === 'client' ? 'client' : user()?.role ?? null)),
-    isPlatformAdmin: computed(() => user()?.role === 'platform_admin'),
-    isCompanyAdmin: computed(() => user()?.role === 'company_admin'),
-    isDentist: computed(() => user()?.role === 'dentist'),
-    isNurse: computed(() => user()?.role === 'nurse'),
-    isClientPatient: computed(() => authType() === 'client' && !!patient()),
-    isPatientClient: computed(() => authType() === 'client' && !!patient()),
-    principalName: computed(() => {
-      if (authType() === 'client') {
-        return patient()?.full_name ?? patient()?.first_name ?? 'Pacijent';
-      }
-
-      return user()?.name ?? 'Korisnik';
-    }),
+    hasPrincipal: computed(() => !!user()),
+    role: computed(() => user()?.role ?? null),
+    isPlatformAdmin: computed(() => user()?.role === AuthRole.PlatformAdmin),
+    isCompanyAdmin: computed(() => user()?.role === AuthRole.CompanyAdmin),
+    isDentist: computed(() => user()?.role === AuthRole.Dentist),
+    isNurse: computed(() => user()?.role === AuthRole.Nurse),
+    isClientPatient: computed(() => user()?.role === AuthRole.Client),
+    isPatientClient: computed(() => user()?.role === AuthRole.Client),
+    principalName: computed(() => user()?.name ?? 'Korisnik'),
     isCompanyUser: computed(() => {
       const currentRole = user()?.role;
-      return currentRole === 'company_admin' || currentRole === 'dentist' || currentRole === 'nurse';
+      return currentRole === AuthRole.CompanyAdmin || currentRole === AuthRole.Dentist || currentRole === AuthRole.Nurse;
     }),
   })),
   withMethods((store, authApi = inject(AuthApi)) => {
-    function setTokenState(token: string | null, authType: AuthType | null = store.authType() ?? 'user'): void {
+    function setTokenState(token: string | null): void {
       const normalizedToken = token?.trim() || null;
 
-      patchState(store, { token: normalizedToken, authType: normalizedToken ? authType : null });
+      patchState(store, { token: normalizedToken });
 
       if (normalizedToken) {
         localStorage.setItem(TOKEN_KEY, normalizedToken);
-        localStorage.setItem(AUTH_TYPE_KEY, authType ?? 'user');
         return;
       }
 
       localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(AUTH_TYPE_KEY);
     }
 
     function setUserState(user: AuthUser | null): void {
-      patchState(store, { authType: user ? 'user' : store.authType(), user, patient: null });
+      patchState(store, { user });
 
       if (user) {
-        localStorage.setItem(AUTH_TYPE_KEY, 'user');
-        localStorage.setItem(PRINCIPAL_KEY, JSON.stringify(user));
-        localStorage.removeItem(LEGACY_USER_KEY);
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
         return;
       }
 
-      localStorage.removeItem(PRINCIPAL_KEY);
-    }
-
-    function setPatientState(patient: ClientPatient | null): void {
-      patchState(store, { authType: patient ? 'client' : store.authType(), user: null, patient });
-
-      if (patient) {
-        localStorage.setItem(AUTH_TYPE_KEY, 'client');
-        localStorage.setItem(PRINCIPAL_KEY, JSON.stringify(patient));
-        localStorage.removeItem(LEGACY_USER_KEY);
-        return;
-      }
-
-      localStorage.removeItem(PRINCIPAL_KEY);
+      localStorage.removeItem(USER_KEY);
     }
 
     function clearAuthState(): void {
-      patchState(store, { token: null, authType: null, user: null, patient: null });
+      patchState(store, { token: null, user: null });
       localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(AUTH_TYPE_KEY);
-      localStorage.removeItem(PRINCIPAL_KEY);
-      localStorage.removeItem(LEGACY_USER_KEY);
-      localStorage.removeItem(LEGACY_CLIENT_TOKEN_KEY);
-      localStorage.removeItem(LEGACY_CLIENT_PATIENT_KEY);
+      localStorage.removeItem(USER_KEY);
     }
 
-    function readStoredPrincipal(): AuthUser | ClientPatient | null {
-      const principalJson = localStorage.getItem(PRINCIPAL_KEY) ?? localStorage.getItem(LEGACY_USER_KEY);
+    function readStoredUser(): AuthUser | null {
+      const userJson = localStorage.getItem(USER_KEY);
 
-      if (!principalJson) {
+      if (!userJson) {
         return null;
       }
 
       try {
-        return JSON.parse(principalJson) as AuthUser | ClientPatient;
+        return JSON.parse(userJson) as AuthUser;
       } catch {
-        localStorage.removeItem(PRINCIPAL_KEY);
-        localStorage.removeItem(LEGACY_USER_KEY);
+        localStorage.removeItem(USER_KEY);
         return null;
       }
     }
 
     return {
-      setToken(token: string | null, authType: AuthType = 'user'): void {
-        setTokenState(token, authType);
+      setToken(token: string | null): void {
+        setTokenState(token);
       },
 
       setUser(user: AuthUser | null): void {
@@ -133,29 +97,18 @@ export const AuthStore = signalStore(
       },
 
       setAuth(token: string, user: AuthUser | null): void {
-        setTokenState(token, 'user');
+        setTokenState(token);
         setUserState(user);
       },
 
-      setClientAuth(token: string, patient: ClientPatient | null): void {
-        setTokenState(token, 'client');
-        setPatientState(patient);
-      },
-
       restoreFromStorage(): void {
-        const token = localStorage.getItem(TOKEN_KEY);
-        const authType = (localStorage.getItem(AUTH_TYPE_KEY) as AuthType | null) ?? 'user';
-        const principal = readStoredPrincipal();
-
         patchState(store, {
-          token,
-          authType: token ? authType : null,
-          user: token && authType === 'user' ? (principal as AuthUser | null) : null,
-          patient: token && authType === 'client' ? (principal as ClientPatient | null) : null,
+          token: localStorage.getItem(TOKEN_KEY),
+          user: readStoredUser(),
         });
       },
 
-      checkAuth(): Observable<AuthUser | ClientPatient | null> {
+      checkAuth(): Observable<AuthUser | null> {
         if (!store.token()) {
           clearAuthState();
           return of(null);
@@ -163,19 +116,11 @@ export const AuthStore = signalStore(
 
         patchState(store, { loading: true });
 
-        const request$: Observable<AuthUser | ClientPatient> =
-          store.authType() === 'client' ? authApi.clientMe() : authApi.me();
-
-        return request$.pipe(
-          tap((principal) => {
-            if (store.authType() === 'client') {
-              setPatientState(principal as ClientPatient);
-              return;
-            }
-
-            setUserState(principal as AuthUser);
+        return authApi.me().pipe(
+          tap((user) => {
+            setUserState(user);
           }),
-          map((principal) => principal),
+          map((user) => user),
           catchError(() => {
             clearAuthState();
             return of(null);
@@ -194,9 +139,7 @@ export const AuthStore = signalStore(
 
         patchState(store, { loading: true });
 
-        const request$ = store.authType() === 'client' ? authApi.clientLogout() : authApi.logout();
-
-        return request$.pipe(
+        return authApi.logout().pipe(
           catchError(() => of(null)),
           finalize(() => {
             clearAuthState();

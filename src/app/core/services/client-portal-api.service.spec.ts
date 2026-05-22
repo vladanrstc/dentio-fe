@@ -23,28 +23,21 @@ describe('ClientPortalApi', () => {
     httpMock.verify();
   });
 
-  it('salje client login zahtev', () => {
-    service.login('pacijent@test.rs', 'Password123!').subscribe((response) => {
-      expect(response.data.token).toBe('client-token');
-      expect(response.data.patient.email).toBe('pacijent@test.rs');
+  it('ucitava client me podatke', () => {
+    service.me().subscribe((patient) => {
+      expect(patient.id).toBe(7);
+      expect(patient.email).toBe('pacijent@test.rs');
     });
 
-    const request = httpMock.expectOne(`${environment.apiBaseUrl}/client/login`);
-    expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({
-      email: 'pacijent@test.rs',
-      password: 'Password123!',
-    });
+    const request = httpMock.expectOne(`${environment.apiBaseUrl}/client/me`);
+    expect(request.request.method).toBe('GET');
 
     request.flush({
       data: {
-        token: 'client-token',
-        patient: {
-          id: 7,
-          first_name: 'Petar',
-          last_name: 'Petrovic',
-          email: 'pacijent@test.rs',
-        },
+        id: 7,
+        first_name: 'Petar',
+        last_name: 'Petrovic',
+        email: 'pacijent@test.rs',
       },
     });
   });
@@ -65,28 +58,6 @@ describe('ClientPortalApi', () => {
         interventions: [],
         tasks: [],
         financials: null,
-      },
-    });
-  });
-
-  it('salje pozivnicu za portal pacijenta', () => {
-    service.sendPatientPortalInvite('pacijent@test.rs').subscribe((invite) => {
-      expect(invite.email).toBe('pacijent@test.rs');
-      expect(invite.valid).toBe(true);
-    });
-
-    const request = httpMock.expectOne(`${environment.apiBaseUrl}/company/patients/portal-invites`);
-    expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({ email: 'pacijent@test.rs' });
-
-    request.flush({
-      data: {
-        id: 3,
-        email: 'pacijent@test.rs',
-        valid: true,
-        expired: false,
-        accepted: false,
-        revoked: false,
       },
     });
   });

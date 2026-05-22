@@ -7,7 +7,7 @@ import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Patient, StaffMember } from '../../core/models/api.models';
-import { ClientPortalApi } from '../../core/services/client-portal-api.service';
+import { PatientPortalInviteApi } from '../../core/services/patient-portal-invite-api.service';
 import { PatientsApi } from '../../core/services/patients-api.service';
 import { PatientDetail } from './patient-detail';
 
@@ -23,7 +23,7 @@ describe('PatientDetail', () => {
     updatePatientStatus: ReturnType<typeof vi.fn>;
     completePatientTask: ReturnType<typeof vi.fn>;
   };
-  let clientPortalApi: {
+  let patientPortalInviteApi: {
     sendPatientPortalInvite: ReturnType<typeof vi.fn>;
   };
 
@@ -87,7 +87,7 @@ describe('PatientDetail', () => {
       updatePatientStatus: vi.fn(() => of({ data: { id: 1 } })),
       completePatientTask: vi.fn(() => of({ data: { completed: true } })),
     };
-    clientPortalApi = {
+    patientPortalInviteApi = {
       sendPatientPortalInvite: vi.fn(() =>
         of({
           id: 5,
@@ -115,7 +115,7 @@ describe('PatientDetail', () => {
           },
         },
         { provide: PatientsApi, useValue: patientsApi },
-        { provide: ClientPortalApi, useValue: clientPortalApi },
+        { provide: PatientPortalInviteApi, useValue: patientPortalInviteApi },
       ],
     }).compileComponents();
 
@@ -186,12 +186,12 @@ describe('PatientDetail', () => {
     inviteButton?.nativeElement.click();
     fixture.detectChanges();
 
-    expect(clientPortalApi.sendPatientPortalInvite).toHaveBeenCalledWith('ana@test.rs');
+    expect(patientPortalInviteApi.sendPatientPortalInvite).toHaveBeenCalledWith('ana@test.rs');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Pozivnica za portal pacijenta je poslata.');
   });
 
   it('prikazuje validation gresku za portal pozivnicu', () => {
-    clientPortalApi.sendPatientPortalInvite.mockReturnValue(
+    patientPortalInviteApi.sendPatientPortalInvite.mockReturnValue(
       throwError(
         () =>
           new HttpErrorResponse({

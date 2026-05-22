@@ -63,7 +63,7 @@ export class ClientSetupPassword {
 
     this.clientApi.acceptClientInvite(this.token, value.password ?? '', value.password_confirmation ?? '').subscribe({
       next: () => {
-        this.router.navigate(['/client/login'], {
+        this.router.navigate(['/login'], {
           queryParams: { activated: '1' },
         });
       },

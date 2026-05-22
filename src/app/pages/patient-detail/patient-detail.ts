@@ -11,7 +11,7 @@ import {
   StaffMember,
 } from '../../core/models/api.models';
 import { PatientsApi } from '../../core/services/patients-api.service';
-import { ClientPortalApi } from '../../core/services/client-portal-api.service';
+import { PatientPortalInviteApi } from '../../core/services/patient-portal-invite-api.service';
 import { APPOINTMENT_TYPE_LABELS, appointmentTitle } from '../../core/utils/appointment-labels';
 import { formatDate, formatMoney, toApiDate, toApiDateTime as formatToApiDateTime } from '../../core/utils/formatters';
 import { extractValidationErrors, unwrapCollection } from '../../core/utils/http-helpers';
@@ -31,7 +31,7 @@ const APPOINTMENT_LABEL_MAX_LENGTH = 60;
 })
 export class PatientDetail {
   private readonly patientsApi = inject(PatientsApi);
-  private readonly clientPortalApi = inject(ClientPortalApi);
+  private readonly patientPortalInviteApi = inject(PatientPortalInviteApi);
   private readonly route = inject(ActivatedRoute);
   private readonly formBuilder = inject(FormBuilder);
   private readonly patientId = Number(this.route.snapshot.paramMap.get('id'));
@@ -418,7 +418,7 @@ export class PatientDetail {
     const email = (this.portalInviteForm.controls.email.value ?? '').trim();
     this.portalInviteSubmitting.set(true);
 
-    this.clientPortalApi.sendPatientPortalInvite(email).subscribe({
+    this.patientPortalInviteApi.sendPatientPortalInvite(email).subscribe({
       next: () => {
         this.success.set('Pozivnica za portal pacijenta je poslata.');
         this.portalInviteSubmitting.set(false);

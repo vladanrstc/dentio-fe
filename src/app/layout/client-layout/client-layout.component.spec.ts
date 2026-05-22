@@ -57,6 +57,6 @@ describe('ClientLayout', () => {
     logoutButton?.nativeElement.click();
 
     expect(authStore.logout).toHaveBeenCalledOnce();
-    expect(router.navigate).toHaveBeenCalledWith(['/client/login']);
+    expect(router.navigate).toHaveBeenCalledWith(['/login']);
   });
 });

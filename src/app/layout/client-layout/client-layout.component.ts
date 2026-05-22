@@ -16,7 +16,7 @@ export class ClientLayout {
 
   protected logout(): void {
     this.authStore.logout().subscribe(() => {
-      this.router.navigate(['/client/login']);
+      this.router.navigate(['/login']);
     });
   }
 }

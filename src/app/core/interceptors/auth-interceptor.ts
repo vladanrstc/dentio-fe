@@ -8,7 +8,6 @@ import { AuthStore } from '../state/auth.store';
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   const authStore = inject(AuthStore);
-  const isClientRequest = req.url.includes('/client/');
   const token = authStore.token();
 
   const headers: Record<string, string> = {
@@ -27,7 +26,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: unknown) => {
       if (error instanceof HttpErrorResponse && error.status === 401) {
         authStore.clearAuth();
-        router.navigate([isClientRequest ? '/client/login' : '/login']);
+        router.navigate(['/login']);
       }
 
       if (error instanceof HttpErrorResponse && error.status === 403) {

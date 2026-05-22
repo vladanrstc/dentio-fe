@@ -43,8 +43,12 @@ export class ClientDashboard {
   }
 
   protected patientName(): string {
-    const patient = this.dashboard()?.patient ?? this.authStore.patient();
-    return patient?.full_name ?? (`${patient?.first_name ?? ''} ${patient?.last_name ?? ''}`.trim() || 'Pacijent');
+    const patient = this.dashboard()?.patient;
+
+    return (
+      patient?.full_name ??
+      (`${patient?.first_name ?? ''} ${patient?.last_name ?? ''}`.trim() || this.authStore.user()?.name || 'Pacijent')
+    );
   }
 
   protected appointments(): Appointment[] {

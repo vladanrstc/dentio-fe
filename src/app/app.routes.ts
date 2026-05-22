@@ -14,13 +14,11 @@ import { AdminCompanyDetail } from './pages/admin-company-detail/admin-company-d
 import { AdminInviteOwner } from './pages/admin-invite-owner/admin-invite-owner';
 import { ReportSettings } from './pages/report-settings/report-settings';
 import { ClientLayout } from './layout/client-layout/client-layout.component';
-import { ClientLogin } from './pages/client-login/client-login.component';
 import { ClientDashboard } from './pages/client-dashboard/client-dashboard.component';
 import { ClientSetupPassword } from './pages/client-setup-password/client-setup-password.component';
-import { adminGuard } from './core/guards/admin.guard';
-import { companyGuard } from './core/guards/company.guard';
-import { clientGuard } from './core/guards/client.guard';
 import { authGuard } from './core/guards/auth.guard';
+import { roleGuard } from './core/guards/role.guard';
+import { AuthRole, COMPANY_ROLES } from './core/models/auth.models';
 
 export const routes: Routes = [
   {
@@ -33,7 +31,8 @@ export const routes: Routes = [
   },
   {
     path: 'client/login',
-    component: ClientLogin,
+    pathMatch: 'full',
+    redirectTo: '/login',
   },
   {
     path: 'client/setup-password',
@@ -42,7 +41,8 @@ export const routes: Routes = [
   {
     path: 'client',
     component: ClientLayout,
-    canActivate: [authGuard, clientGuard],
+    canActivate: [authGuard, roleGuard],
+    data: { roles: [AuthRole.Client] },
     children: [
       {
         path: 'dashboard',
@@ -70,7 +70,8 @@ export const routes: Routes = [
   {
     path: 'admin',
     component: AdminLayout,
-    canActivate: [authGuard, adminGuard],
+    canActivate: [authGuard, roleGuard],
+    data: { roles: [AuthRole.PlatformAdmin] },
     children: [
       {
         path: 'dashboard',
@@ -108,7 +109,8 @@ export const routes: Routes = [
   {
     path: '',
     component: MainLayout,
-    canActivate: [authGuard, companyGuard],
+    canActivate: [authGuard, roleGuard],
+    data: { roles: COMPANY_ROLES },
     children: [
       {
         path: 'dashboard',

@@ -3,14 +3,15 @@ import { Router } from '@angular/router';
 import { Observable, firstValueFrom, of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { AuthRole } from '../models/auth.models';
 import { AuthStore } from '../state/auth.store';
 import { clientGuard } from './client.guard';
 
 describe('clientGuard', () => {
   let authStore: {
     isAuthenticated: ReturnType<typeof vi.fn>;
-    hasPrincipal: ReturnType<typeof vi.fn>;
-    isClientPatient: ReturnType<typeof vi.fn>;
+    hasUser: ReturnType<typeof vi.fn>;
+    role: ReturnType<typeof vi.fn>;
     checkAuth: ReturnType<typeof vi.fn>;
   };
   let router: { createUrlTree: ReturnType<typeof vi.fn> };
@@ -18,8 +19,8 @@ describe('clientGuard', () => {
   beforeEach(() => {
     authStore = {
       isAuthenticated: vi.fn(() => true),
-      hasPrincipal: vi.fn(() => true),
-      isClientPatient: vi.fn(() => true),
+      hasUser: vi.fn(() => true),
+      role: vi.fn(() => AuthRole.Client),
       checkAuth: vi.fn(() => of({ id: 7 })),
     };
     router = {
@@ -40,16 +41,16 @@ describe('clientGuard', () => {
     expect(result).toBe(true);
   });
 
-  it('neulogovanog pacijenta salje na client login', () => {
+  it('neulogovanog pacijenta salje na login', () => {
     authStore.isAuthenticated.mockReturnValue(false);
 
     const result = TestBed.runInInjectionContext(() => clientGuard({} as never, {} as never));
 
-    expect(result).toEqual({ commands: ['/client/login'] });
+    expect(result).toEqual({ commands: ['/login'] });
   });
 
-  it('ceka /client/me proveru ako token postoji, ali pacijent nije ucitan', async () => {
-    authStore.hasPrincipal.mockReturnValueOnce(false).mockReturnValue(true);
+  it('ceka /me proveru ako token postoji, ali user jos nije ucitan', async () => {
+    authStore.hasUser.mockReturnValueOnce(false).mockReturnValue(true);
     authStore.checkAuth.mockReturnValue(of({ id: 7 }));
 
     const result = TestBed.runInInjectionContext(() => clientGuard({} as never, {} as never));
@@ -59,10 +60,10 @@ describe('clientGuard', () => {
   });
 
   it('company korisnika ne pusta na client rute', () => {
-    authStore.isClientPatient.mockReturnValue(false);
+    authStore.role.mockReturnValue(AuthRole.CompanyAdmin);
 
     const result = TestBed.runInInjectionContext(() => clientGuard({} as never, {} as never));
 
-    expect(result).toEqual({ commands: ['/login'] });
+    expect(result).toEqual({ commands: ['/dashboard'] });
   });
 });

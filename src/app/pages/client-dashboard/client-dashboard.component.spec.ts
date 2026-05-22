@@ -9,7 +9,7 @@ import { ClientDashboard } from './client-dashboard.component';
 describe('ClientDashboard', () => {
   let fixture: ComponentFixture<ClientDashboard>;
   let clientApi: { dashboard: ReturnType<typeof vi.fn> };
-  let authStore: { patient: ReturnType<typeof vi.fn> };
+  let authStore: { user: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     clientApi = {
@@ -32,7 +32,7 @@ describe('ClientDashboard', () => {
       ),
     };
     authStore = {
-      patient: vi.fn(() => null),
+      user: vi.fn(() => null),
     };
 
     await TestBed.configureTestingModule({

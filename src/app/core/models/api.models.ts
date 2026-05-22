@@ -1,13 +1,12 @@
+import { AuthRole } from './auth.models';
+
 export type AuthUser = {
   id: number;
   company_id: number | null;
   name: string;
   email: string;
-  role: string;
+  role: AuthRole;
 };
-
-export type AuthType = 'user' | 'client';
-export type AuthRole = 'platform_admin' | 'company_admin' | 'dentist' | 'nurse' | 'client' | string;
 
 export type LoginResponse = {
   token: string;
@@ -310,13 +309,6 @@ export type ReportSubscriptionPayload = {
 
 export type ClientPatient = Patient;
 
-export type ClientLoginResponse = {
-  data: {
-    token: string;
-    patient: ClientPatient;
-  };
-};
-
 export type ClientMeResponse = ClientPatient | { data: ClientPatient };
 
 export type ClientDashboardData = {
@@ -328,10 +320,6 @@ export type ClientDashboardData = {
 };
 
 export type ClientDashboardResponse = ClientDashboardData | { data: ClientDashboardData };
-
-export type SendPatientPortalInvitePayload = {
-  email: string;
-};
 
 export type PatientPortalInviteData = {
   id: number;

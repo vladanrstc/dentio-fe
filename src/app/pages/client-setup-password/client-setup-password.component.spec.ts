@@ -96,7 +96,7 @@ describe('ClientSetupPassword', () => {
     submitForm();
 
     expect(clientApi.acceptClientInvite).toHaveBeenCalledWith('token-123', 'Password123!', 'Password123!');
-    expect(router.navigate).toHaveBeenCalledWith(['/client/login'], {
+    expect(router.navigate).toHaveBeenCalledWith(['/login'], {
       queryParams: { activated: '1' },
     });
   });

@@ -10,12 +10,12 @@ import {
   AcceptPatientPortalInviteResponse,
   ClientDashboardData,
   ClientDashboardResponse,
-  ClientLoginResponse,
+  ClientMeResponse,
+  ClientPatient,
   CollectionResponse,
   Intervention,
   PatientPortalInviteData,
   PatientPortalInviteResponse,
-  SendPatientPortalInvitePayload,
 } from '../models/api.models';
 import { unwrapCollection, unwrapItem } from '../utils/http-helpers';
 
@@ -26,15 +26,10 @@ export class ClientPortalApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = environment.apiBaseUrl;
 
-  login(email: string, password: string): Observable<ClientLoginResponse> {
-    return this.http.post<ClientLoginResponse>(`${this.baseUrl}/client/login`, { email, password });
-  }
-
-  sendPatientPortalInvite(email: string): Observable<PatientPortalInviteData> {
-    const payload: SendPatientPortalInvitePayload = { email };
+  me(): Observable<ClientPatient> {
     return this.http
-      .post<PatientPortalInviteResponse>(`${this.baseUrl}/company/patients/portal-invites`, payload)
-      .pipe(map((response): PatientPortalInviteData => unwrapItem(response)));
+      .get<ClientMeResponse>(`${this.baseUrl}/client/me`)
+      .pipe(map((response): ClientPatient => unwrapItem(response)));
   }
 
   showClientInvite(token: string): Observable<PatientPortalInviteData> {

@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, of, switchMap, throwError } from 'rxjs';
 
 import { AuthUser, LoginResponse } from '../models/api.models';
+import { getDefaultRouteForRole } from '../models/auth.models';
 import { AuthStore } from '../state/auth.store';
 import { AuthApi } from './auth-api.service';
 
@@ -24,7 +25,7 @@ export class Auth {
 
         return this.store.checkAuth().pipe(
           switchMap((user) => {
-            if (!user || !('role' in user)) {
+            if (!user) {
               return throwError(() => new Error('Current user is not available.'));
             }
 
@@ -47,6 +48,6 @@ export class Auth {
   }
 
   homePathFor(user: AuthUser | null = this.currentUser()): string {
-    return user?.role === 'platform_admin' ? '/admin/dashboard' : '/dashboard';
+    return getDefaultRouteForRole(user?.role);
   }
 }
