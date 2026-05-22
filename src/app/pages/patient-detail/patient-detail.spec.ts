@@ -7,6 +7,7 @@ import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Patient, StaffMember } from '../../core/models/api.models';
+import { PatientPortalInviteApi } from '../../core/services/patient-portal-invite-api.service';
 import { PatientsApi } from '../../core/services/patients-api.service';
 import { PatientDetail } from './patient-detail';
 
@@ -21,6 +22,9 @@ describe('PatientDetail', () => {
     createPatientTask: ReturnType<typeof vi.fn>;
     updatePatientStatus: ReturnType<typeof vi.fn>;
     completePatientTask: ReturnType<typeof vi.fn>;
+  };
+  let patientPortalInviteApi: {
+    sendPatientPortalInvite: ReturnType<typeof vi.fn>;
   };
 
   const patient: Patient = {
@@ -83,6 +87,18 @@ describe('PatientDetail', () => {
       updatePatientStatus: vi.fn(() => of({ data: { id: 1 } })),
       completePatientTask: vi.fn(() => of({ data: { completed: true } })),
     };
+    patientPortalInviteApi = {
+      sendPatientPortalInvite: vi.fn(() =>
+        of({
+          id: 5,
+          email: 'ana@test.rs',
+          valid: true,
+          expired: false,
+          accepted: false,
+          revoked: false,
+        }),
+      ),
+    };
 
     await TestBed.configureTestingModule({
       imports: [PatientDetail],
@@ -99,6 +115,7 @@ describe('PatientDetail', () => {
           },
         },
         { provide: PatientsApi, useValue: patientsApi },
+        { provide: PatientPortalInviteApi, useValue: patientPortalInviteApi },
       ],
     }).compileComponents();
 
@@ -156,8 +173,46 @@ describe('PatientDetail', () => {
     fixture.detectChanges();
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Detalji termina');
-    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Pregled');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Kontrola posle intervencije');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Dr Petar Petrović');
+  });
+
+  it('salje pozivnicu za portal pacijenta sa emailom pacijenta', () => {
+    const inviteButton = fixture.debugElement
+      .queryAll(By.css('button'))
+      .find((button) => button.nativeElement.textContent.includes('Pošalji pozivnicu'));
+
+    expect(inviteButton).toBeTruthy();
+    inviteButton?.nativeElement.click();
+    fixture.detectChanges();
+
+    expect(patientPortalInviteApi.sendPatientPortalInvite).toHaveBeenCalledWith('ana@test.rs');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Pozivnica za portal pacijenta je poslata.');
+  });
+
+  it('prikazuje validation gresku za portal pozivnicu', () => {
+    patientPortalInviteApi.sendPatientPortalInvite.mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 422,
+            error: {
+              errors: {
+                email: ['Pacijent sa ovim emailom nije pronađen.'],
+              },
+            },
+          }),
+      ),
+    );
+
+    const inviteButton = fixture.debugElement
+      .queryAll(By.css('button'))
+      .find((button) => button.nativeElement.textContent.includes('Pošalji pozivnicu'));
+
+    inviteButton?.nativeElement.click();
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Pacijent sa ovim emailom nije pronađen.');
   });
 
   it('skrati appointment label kada je fallback duga napomena', () => {

@@ -1,0 +1,131 @@
+<section class="page-header">
+  <div>
+    <span class="eyebrow">Portal pacijenta</span>
+    <h1>Zdravo, {{ patientName() }}</h1>
+    <p>Pregled vaših termina, intervencija, zadataka i finansijskog stanja.</p>
+  </div>
+</section>
+
+@if (loading()) {
+  <section class="loading-panel">
+    <div class="spinner"></div>
+    <span>Učitavanje podataka...</span>
+  </section>
+} @else if (error()) {
+  <section class="state-card error">
+    <strong>{{ error() }}</strong>
+  </section>
+} @else if (dashboard()) {
+  <section class="summary-grid">
+    <article>
+      <span>Ukupna cena</span>
+      <strong>{{ financialValue('total_cost') }}</strong>
+    </article>
+    <article>
+      <span>Plaćeno</span>
+      <strong>{{ financialValue('paid_amount') }}</strong>
+    </article>
+    <article>
+      <span>Dugovanje</span>
+      <strong>{{ financialValue('outstanding_amount') }}</strong>
+    </article>
+  </section>
+
+  <section class="portal-grid">
+    <article class="panel">
+      <div class="panel-title">
+        <h2>Osnovni podaci</h2>
+      </div>
+      <dl class="info-list">
+        <div>
+          <dt>Ime i prezime</dt>
+          <dd>{{ patientName() }}</dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd>{{ dashboard()?.patient?.email || '-' }}</dd>
+        </div>
+        <div>
+          <dt>Telefon</dt>
+          <dd>{{ dashboard()?.patient?.phone || '-' }}</dd>
+        </div>
+        <div>
+          <dt>Adresa</dt>
+          <dd>{{ dashboard()?.patient?.address || '-' }}</dd>
+        </div>
+      </dl>
+    </article>
+
+    <article class="panel">
+      <div class="panel-title">
+        <h2>Aktivni zadaci</h2>
+      </div>
+
+      @if (tasks().length) {
+        <div class="item-list">
+          @for (task of tasks(); track task.id) {
+            <div class="item-row">
+              <div>
+                <strong>{{ taskTitle(task) }}</strong>
+                <span>Rok: {{ formatDate(task.due_date ?? task.due_at) }}</span>
+              </div>
+              <span class="badge">Aktivno</span>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-state">Nema aktivnih zadataka.</div>
+      }
+    </article>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title">
+      <h2>Termini</h2>
+    </div>
+
+    @if (appointments().length) {
+      <div class="item-list">
+        @for (appointment of appointments(); track appointment.id) {
+          <div class="item-row">
+            <div>
+              <strong>{{ appointmentTitle(appointment) }}</strong>
+              <span>{{ appointmentTime(appointment) }}</span>
+              @if (appointment.notes || appointment.note) {
+                <p>{{ appointment.notes || appointment.note }}</p>
+              }
+            </div>
+            <span class="badge">{{ staffName(appointment.assigned_user ?? appointment.assigned_to) }}</span>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="empty-state">Nema zakazanih termina.</div>
+    }
+  </section>
+
+  <section class="panel">
+    <div class="panel-title">
+      <h2>Intervencije</h2>
+    </div>
+
+    @if (interventions().length) {
+      <div class="item-list">
+        @for (intervention of interventions(); track intervention.id) {
+          <div class="item-row">
+            <div>
+              <strong>{{ interventionTitle(intervention) }}</strong>
+              <span>{{ formatDate(intervention.intervention_date ?? intervention.date ?? intervention.created_at) }}</span>
+              @if (intervention.description) {
+                <p>{{ intervention.description }}</p>
+              }
+            </div>
+            <span class="badge">{{ formatMoney(intervention.total_cost ?? intervention.price ?? 0) }}</span>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="empty-state">Nema evidentiranih intervencija.</div>
+    }
+  </section>
+}

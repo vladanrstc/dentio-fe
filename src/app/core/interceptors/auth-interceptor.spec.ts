@@ -44,6 +44,21 @@ describe('authInterceptor', () => {
     expect(next).toHaveBeenCalledOnce();
   });
 
+  it('za client rute koristi isti jedinstveni auth token', () => {
+    authStore.token.mockReturnValue('shared-token');
+
+    const next: HttpHandlerFn = vi.fn((request: HttpRequest<unknown>) => {
+      expect(request.headers.get('Authorization')).toBe('Bearer shared-token');
+      return of(new HttpResponse({ status: 200 }));
+    });
+
+    TestBed.runInInjectionContext(() => {
+      authInterceptor(new HttpRequest('GET', '/api/v1/client/dashboard'), next).subscribe();
+    });
+
+    expect(next).toHaveBeenCalledOnce();
+  });
+
   it('na 401 cisti sesiju i preusmerava na login', () => {
     authStore.token.mockReturnValue('abc');
     const error = new HttpErrorResponse({ status: 401 });
@@ -51,6 +66,21 @@ describe('authInterceptor', () => {
 
     TestBed.runInInjectionContext(() => {
       authInterceptor(new HttpRequest('GET', '/test'), next).subscribe({
+        error: () => undefined,
+      });
+    });
+
+    expect(authStore.clearAuth).toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith(['/login']);
+  });
+
+  it('na 401 za client rutu cisti sesiju i preusmerava na login', () => {
+    authStore.token.mockReturnValue('client-token');
+    const error = new HttpErrorResponse({ status: 401 });
+    const next: HttpHandlerFn = vi.fn(() => throwError(() => error));
+
+    TestBed.runInInjectionContext(() => {
+      authInterceptor(new HttpRequest('GET', '/api/v1/client/dashboard'), next).subscribe({
         error: () => undefined,
       });
     });

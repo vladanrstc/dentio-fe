@@ -3,6 +3,7 @@ import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthUser } from '../models/api.models';
+import { AuthRole } from '../models/auth.models';
 import { AuthStore } from '../state/auth.store';
 import { Auth } from './auth';
 import { AuthApi } from './auth-api.service';
@@ -12,7 +13,15 @@ const user: AuthUser = {
   company_id: 10,
   name: 'Dejan Dent',
   email: 'owner@test.rs',
-  role: 'company_admin',
+  role: AuthRole.CompanyAdmin,
+};
+
+const clientUser: AuthUser = {
+  id: 7,
+  company_id: 10,
+  name: 'Petar Petrovic',
+  email: 'pacijent@test.rs',
+  role: AuthRole.Client,
 };
 
 describe('Auth', () => {
@@ -83,5 +92,9 @@ describe('Auth', () => {
     service.logout().subscribe();
 
     expect(authStore.logout).toHaveBeenCalled();
+  });
+
+  it('homePathFor vraca client dashboard za client role', () => {
+    expect(service.homePathFor(clientUser)).toBe('/client/dashboard');
   });
 });

@@ -11,6 +11,8 @@ import {
   StaffMember,
 } from '../../core/models/api.models';
 import { PatientsApi } from '../../core/services/patients-api.service';
+import { PatientPortalInviteApi } from '../../core/services/patient-portal-invite-api.service';
+import { APPOINTMENT_TYPE_LABELS, appointmentTitle } from '../../core/utils/appointment-labels';
 import { formatDate, formatMoney, toApiDate, toApiDateTime as formatToApiDateTime } from '../../core/utils/formatters';
 import { extractValidationErrors, unwrapCollection } from '../../core/utils/http-helpers';
 import { statusLabel } from '../../core/utils/role-label';
@@ -29,6 +31,7 @@ const APPOINTMENT_LABEL_MAX_LENGTH = 60;
 })
 export class PatientDetail {
   private readonly patientsApi = inject(PatientsApi);
+  private readonly patientPortalInviteApi = inject(PatientPortalInviteApi);
   private readonly route = inject(ActivatedRoute);
   private readonly formBuilder = inject(FormBuilder);
   private readonly patientId = Number(this.route.snapshot.paramMap.get('id'));
@@ -47,6 +50,7 @@ export class PatientDetail {
   protected readonly interventionSubmitting = signal(false);
   protected readonly taskSubmitting = signal(false);
   protected readonly statusSubmitting = signal(false);
+  protected readonly portalInviteSubmitting = signal(false);
   protected readonly completingTaskId = signal<number | null>(null);
   protected readonly activeModal = signal<PatientDetailModal | null>(null);
   protected readonly selectedAppointment = signal<Appointment | null>(null);
@@ -59,9 +63,9 @@ export class PatientDetail {
   ] as const;
 
   protected readonly appointmentTypeOptions = [
-    { value: 'checkup', label: 'Pregled' },
-    { value: 'intervention', label: 'Intervencija' },
-    { value: 'control', label: 'Kontrola' },
+    { value: 'checkup', label: APPOINTMENT_TYPE_LABELS['checkup'] },
+    { value: 'intervention', label: APPOINTMENT_TYPE_LABELS['intervention'] },
+    { value: 'control', label: APPOINTMENT_TYPE_LABELS['control'] },
   ] as const;
 
   protected readonly appointmentForm = this.formBuilder.group({
@@ -100,6 +104,10 @@ export class PatientDetail {
     manual_status_reason: [''],
   });
 
+  protected readonly portalInviteForm = this.formBuilder.group({
+    email: ['', [Validators.required, Validators.email]],
+  });
+
   protected readonly patientName = computed(() => {
     const patient = this.patient();
     return patient ? this.fullName(patient) : 'Pacijent';
@@ -132,8 +140,7 @@ export class PatientDetail {
   }
 
   protected appointmentFullTitle(appointment: Appointment): string {
-    const typeLabel = this.appointmentTypeOptions.find((type) => type.value === appointment.type)?.label;
-    return typeLabel || appointment.type || appointment.notes || appointment.note || appointment.patient_name || 'Termin';
+    return appointmentTitle(appointment);
   }
 
   protected appointmentTime(appointment: Appointment): string {
@@ -197,6 +204,11 @@ export class PatientDetail {
             : this.statusForm.get(fieldName);
 
     return !!field && field.invalid && (field.dirty || field.touched);
+  }
+
+  protected portalInviteFieldInvalid(fieldName: keyof typeof this.portalInviteForm.controls): boolean {
+    const field = this.portalInviteForm.controls[fieldName];
+    return field.invalid && (field.dirty || field.touched);
   }
 
   protected openModal(modal: PatientDetailModal): void {
@@ -395,6 +407,31 @@ export class PatientDetail {
     });
   }
 
+  protected sendPortalInvite(): void {
+    this.clearMessages();
+
+    if (this.portalInviteForm.invalid) {
+      this.portalInviteForm.markAllAsTouched();
+      return;
+    }
+
+    const email = (this.portalInviteForm.controls.email.value ?? '').trim();
+    this.portalInviteSubmitting.set(true);
+
+    this.patientPortalInviteApi.sendPatientPortalInvite(email).subscribe({
+      next: () => {
+        this.success.set('Pozivnica za portal pacijenta je poslata.');
+        this.portalInviteSubmitting.set(false);
+      },
+      error: (error: HttpErrorResponse) => {
+        const validationErrors = extractValidationErrors(error);
+        this.formError.set(validationErrors[0] || 'Pozivnica nije poslata.');
+        this.validationErrors.set(validationErrors);
+        this.portalInviteSubmitting.set(false);
+      },
+    });
+  }
+
   private loadPatient(showLoading = true): void {
     if (!this.patientId) {
       this.error.set('Pacijent nije pronađen.');
@@ -437,6 +474,9 @@ export class PatientDetail {
 
   private setPatient(patient: Patient): void {
     this.patient.set(patient);
+    if (!this.portalInviteForm.dirty) {
+      this.portalInviteForm.patchValue({ email: patient.email ?? '' });
+    }
     this.statusForm.patchValue({
       manual_status: patient.manual_status ?? 'active',
       manual_status_reason: patient.manual_status_reason ?? '',

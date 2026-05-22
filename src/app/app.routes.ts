@@ -13,8 +13,12 @@ import { AdminCompanies } from './pages/admin-companies/admin-companies';
 import { AdminCompanyDetail } from './pages/admin-company-detail/admin-company-detail';
 import { AdminInviteOwner } from './pages/admin-invite-owner/admin-invite-owner';
 import { ReportSettings } from './pages/report-settings/report-settings';
-import { adminGuard } from './core/guards/admin.guard';
-import { companyGuard } from './core/guards/company.guard';
+import { ClientLayout } from './layout/client-layout/client-layout.component';
+import { ClientDashboard } from './pages/client-dashboard/client-dashboard.component';
+import { ClientSetupPassword } from './pages/client-setup-password/client-setup-password.component';
+import { authGuard } from './core/guards/auth.guard';
+import { roleGuard } from './core/guards/role.guard';
+import { AuthRole, COMPANY_ROLES } from './core/models/auth.models';
 
 export const routes: Routes = [
   {
@@ -26,9 +30,48 @@ export const routes: Routes = [
     component: InviteAccept,
   },
   {
+    path: 'client/login',
+    pathMatch: 'full',
+    redirectTo: '/login',
+  },
+  {
+    path: 'client/setup-password',
+    component: ClientSetupPassword,
+  },
+  {
+    path: 'client',
+    component: ClientLayout,
+    canActivate: [authGuard, roleGuard],
+    data: { roles: [AuthRole.Client] },
+    children: [
+      {
+        path: 'dashboard',
+        component: ClientDashboard,
+      },
+      {
+        path: 'appointments',
+        component: ClientDashboard,
+      },
+      {
+        path: 'interventions',
+        component: ClientDashboard,
+      },
+      {
+        path: 'tasks',
+        component: ClientDashboard,
+      },
+      {
+        path: '',
+        pathMatch: 'full',
+        redirectTo: 'dashboard',
+      },
+    ],
+  },
+  {
     path: 'admin',
     component: AdminLayout,
-    canActivate: [adminGuard],
+    canActivate: [authGuard, roleGuard],
+    data: { roles: [AuthRole.PlatformAdmin] },
     children: [
       {
         path: 'dashboard',
@@ -66,7 +109,8 @@ export const routes: Routes = [
   {
     path: '',
     component: MainLayout,
-    canActivate: [companyGuard],
+    canActivate: [authGuard, roleGuard],
+    data: { roles: COMPANY_ROLES },
     children: [
       {
         path: 'dashboard',

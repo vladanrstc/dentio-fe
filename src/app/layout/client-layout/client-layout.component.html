@@ -1,0 +1,17 @@
+<div class="client-shell">
+  <header class="client-topbar">
+    <div>
+      <strong>Dentio</strong>
+      <span>Portal pacijenta</span>
+    </div>
+
+    <div class="client-user">
+      <span>{{ authStore.principalName() }}</span>
+      <button type="button" (click)="logout()" [disabled]="authStore.loading()">Odjavi se</button>
+    </div>
+  </header>
+
+  <main class="client-content">
+    <router-outlet />
+  </main>
+</div>

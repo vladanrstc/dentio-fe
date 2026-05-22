@@ -1,13 +1,17 @@
+import { AuthRole } from '../models/auth.models';
+
 export function roleLabel(role: string | null | undefined): string {
   switch (role) {
-    case 'platform_admin':
+    case AuthRole.PlatformAdmin:
       return 'Platform administrator';
-    case 'company_admin':
+    case AuthRole.CompanyAdmin:
       return 'Admin ordinacije';
-    case 'dentist':
+    case AuthRole.Dentist:
       return 'Zubar';
-    case 'nurse':
+    case AuthRole.Nurse:
       return 'Medicinska sestra';
+    case AuthRole.Client:
+      return 'Pacijent';
     default:
       return role || '-';
   }

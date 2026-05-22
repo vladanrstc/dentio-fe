@@ -2,6 +2,7 @@ import { computed, inject } from '@angular/core';
 import { patchState, signalStore, withComputed, withHooks, withMethods, withState } from '@ngrx/signals';
 import { Observable, catchError, finalize, map, of, tap } from 'rxjs';
 
+import { AuthRole } from '../models/auth.models';
 import { AuthUser } from '../models/api.models';
 import { AuthApi } from '../services/auth-api.service';
 
@@ -26,14 +27,18 @@ export const AuthStore = signalStore(
   withComputed(({ token, user }) => ({
     isAuthenticated: computed(() => !!token()),
     hasUser: computed(() => !!user()),
+    hasPrincipal: computed(() => !!user()),
     role: computed(() => user()?.role ?? null),
-    isPlatformAdmin: computed(() => user()?.role === 'platform_admin'),
-    isCompanyAdmin: computed(() => user()?.role === 'company_admin'),
-    isDentist: computed(() => user()?.role === 'dentist'),
-    isNurse: computed(() => user()?.role === 'nurse'),
+    isPlatformAdmin: computed(() => user()?.role === AuthRole.PlatformAdmin),
+    isCompanyAdmin: computed(() => user()?.role === AuthRole.CompanyAdmin),
+    isDentist: computed(() => user()?.role === AuthRole.Dentist),
+    isNurse: computed(() => user()?.role === AuthRole.Nurse),
+    isClientPatient: computed(() => user()?.role === AuthRole.Client),
+    isPatientClient: computed(() => user()?.role === AuthRole.Client),
+    principalName: computed(() => user()?.name ?? 'Korisnik'),
     isCompanyUser: computed(() => {
       const currentRole = user()?.role;
-      return currentRole === 'company_admin' || currentRole === 'dentist' || currentRole === 'nurse';
+      return currentRole === AuthRole.CompanyAdmin || currentRole === AuthRole.Dentist || currentRole === AuthRole.Nurse;
     }),
   })),
   withMethods((store, authApi = inject(AuthApi)) => {
@@ -87,6 +92,9 @@ export const AuthStore = signalStore(
         setTokenState(token);
       },
 
+      setUser(user: AuthUser | null): void {
+        setUserState(user);
+      },
 
       setAuth(token: string, user: AuthUser | null): void {
         setTokenState(token);

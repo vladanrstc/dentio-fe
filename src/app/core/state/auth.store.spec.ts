@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { environment } from '../../../environments/environment';
+import { AuthRole } from '../models/auth.models';
 import { AuthUser } from '../models/api.models';
 import { AuthStore } from './auth.store';
 
@@ -12,7 +13,15 @@ const user: AuthUser = {
   company_id: 10,
   name: 'Dejan Dent',
   email: 'owner@test.rs',
-  role: 'company_admin',
+  role: AuthRole.CompanyAdmin,
+};
+
+const clientUser: AuthUser = {
+  id: 7,
+  company_id: 10,
+  name: 'Petar Petrovic',
+  email: 'pacijent@test.rs',
+  role: AuthRole.Client,
 };
 
 describe('AuthStore', () => {
@@ -41,7 +50,7 @@ describe('AuthStore', () => {
     expect(store.token()).toBe('stored-token');
     expect(store.user()).toEqual(user);
     expect(store.isAuthenticated()).toBe(true);
-    expect(store.role()).toBe('company_admin');
+    expect(store.role()).toBe(AuthRole.CompanyAdmin);
     expect(store.isCompanyAdmin()).toBe(true);
     expect(store.isCompanyUser()).toBe(true);
   });
@@ -54,6 +63,7 @@ describe('AuthStore', () => {
     expect(store.token()).toBe('new-token');
     expect(store.user()).toEqual(user);
     expect(localStorage.getItem('dentio_token')).toBe('new-token');
+    expect(localStorage.getItem('dentio_user')).toBe(JSON.stringify(user));
 
     store.logout().subscribe();
 
@@ -67,12 +77,25 @@ describe('AuthStore', () => {
     expect(localStorage.getItem('dentio_user')).toBeNull();
   });
 
+  it('podrzava client role kroz isti user auth state', () => {
+    initStore();
+
+    store.setAuth('client-token', clientUser);
+
+    expect(store.token()).toBe('client-token');
+    expect(store.user()).toEqual(clientUser);
+    expect(store.role()).toBe(AuthRole.Client);
+    expect(store.isClientPatient()).toBe(true);
+    expect(store.isPatientClient()).toBe(true);
+    expect(store.isCompanyUser()).toBe(false);
+  });
+
   it('checkAuth preko /me ucitava trenutnog korisnika', () => {
     localStorage.setItem('dentio_token', 'stored-token');
     initStore();
 
     let currentUser: AuthUser | null = null;
-    store.checkAuth().subscribe((response: AuthUser | null) => {
+    store.checkAuth().subscribe((response) => {
       currentUser = response;
     });
 
@@ -83,6 +106,21 @@ describe('AuthStore', () => {
     expect(currentUser).toEqual(user);
     expect(store.user()).toEqual(user);
     expect(localStorage.getItem('dentio_user')).toBe(JSON.stringify(user));
+  });
+
+  it('checkAuth koristi isti /me endpoint i za client role', () => {
+    localStorage.setItem('dentio_token', 'stored-client-token');
+    localStorage.setItem('dentio_user', JSON.stringify(clientUser));
+    initStore();
+
+    store.checkAuth().subscribe();
+
+    const request = httpMock.expectOne(`${environment.apiBaseUrl}/me`);
+    expect(request.request.method).toBe('GET');
+    request.flush({ data: clientUser });
+
+    expect(store.user()).toEqual(clientUser);
+    expect(store.isClientPatient()).toBe(true);
   });
 
   it('checkAuth podrzava /me response koji vraca user property', () => {

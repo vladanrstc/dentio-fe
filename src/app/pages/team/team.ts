@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 
 import { CompanyTeamMember } from '../../core/models/api.models';
+import { AuthRole } from '../../core/models/auth.models';
 import { TeamApi } from '../../core/services/team-api.service';
 import { formatDate } from '../../core/utils/formatters';
 import { unwrapCollection } from '../../core/utils/http-helpers';
@@ -40,7 +41,7 @@ export class Team {
   }
 
   protected canDeleteMember(member: CompanyTeamMember): boolean {
-    return member.role === 'dentist' || member.role === 'nurse';
+    return member.role === AuthRole.Dentist || member.role === AuthRole.Nurse;
   }
 
   protected deleteTeamMember(member: CompanyTeamMember): void {
